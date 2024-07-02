@@ -20,7 +20,6 @@ package org.apache.streampark.console.core.controller;
 import org.apache.streampark.common.util.HadoopUtils;
 import org.apache.streampark.console.base.domain.RestResponse;
 import org.apache.streampark.console.core.bean.DockerConfig;
-import org.apache.streampark.console.core.bean.ResponseResult;
 import org.apache.streampark.console.core.bean.SenderEmail;
 import org.apache.streampark.console.core.entity.Setting;
 import org.apache.streampark.console.core.service.SettingService;

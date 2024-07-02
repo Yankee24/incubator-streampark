@@ -19,7 +19,6 @@ package org.apache.streampark.console.core.service;
 
 import org.apache.streampark.console.SpringUnitTestBase;
 import org.apache.streampark.console.core.bean.DockerConfig;
-import org.apache.streampark.console.core.bean.ResponseResult;
 import org.apache.streampark.console.core.bean.SenderEmail;
 
 import org.junit.jupiter.api.Assertions;
