@@ -17,6 +17,7 @@
 
 package org.apache.streampark.e2e.pages.resource;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 
 import lombok.Getter;
@@ -28,28 +29,27 @@ import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.List;
 
 @Getter
 public class VariablesPage extends NavBarPage implements ResourcePage.Tab {
 
-    @FindBy(xpath = "//span[contains(., 'Variable List')]/..//button[contains(@class, 'ant-btn-primary')]/span[contains(text(), 'Add New')]")
-    private WebElement buttonCreateVariable;
+    @FindBy(id = "e2e-var-create-btn")
+    public WebElement buttonCreateVariable;
 
-    @FindBy(xpath = "//tbody[contains(@class, 'ant-table-tbody')]")
-    private List<WebElement> variableList;
+    @FindBy(className = "ant-table-tbody")
+    public List<WebElement> variableList;
 
     @FindBy(className = "swal2-html-container")
-    private List<WebElement> errorMessageList;
+    public List<WebElement> errorMessageList;
 
-    @FindBy(xpath = "//button[contains(text(), 'OK')]")
-    private WebElement errorMessageConfirmButton;
+    @FindBy(xpath = "//button[contains(@class, 'swal2-confirm')]")
+    public WebElement errorMessageConfirmButton;
 
-    @FindBy(xpath = "//button[contains(@class, 'ant-btn')]/span[contains(., 'OK')]")
-    private WebElement deleteConfirmButton;
+    @FindBy(className = "e2e-var-delete-confirm")
+    public WebElement deleteConfirmButton;
 
-    private final CreateVariableForm createVariableForm = new CreateVariableForm();
+    public final CreateVariableForm createVariableForm = new CreateVariableForm();
 
     public VariablesPage(RemoteWebDriver driver) {
         super(driver);
@@ -59,17 +59,18 @@ public class VariablesPage extends NavBarPage implements ResourcePage.Tab {
                                         boolean notVisible) {
         waitForPageLoading();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(buttonCreateVariable));
         buttonCreateVariable.click();
-        createVariableForm.inputVariableCode().sendKeys(variableCode);
-        createVariableForm.inputVariableValue().sendKeys(variableValue);
-        createVariableForm.inputDescription().sendKeys(description);
+        createVariableForm.inputVariableCode.sendKeys(variableCode);
+        createVariableForm.inputVariableValue.sendKeys(variableValue);
+        createVariableForm.inputDescription.sendKeys(description);
         if (notVisible) {
             createVariableForm.buttonDesensitization.click();
         }
 
-        createVariableForm.buttonSubmit().click();
+        createVariableForm.buttonSubmit.click();
+
         return this;
     }
 
@@ -77,54 +78,54 @@ public class VariablesPage extends NavBarPage implements ResourcePage.Tab {
                                       boolean notVisible) {
         waitForPageLoading();
 
-        variableList().stream()
+        variableList.stream()
             .filter(it -> it.getText().contains(variableCode))
             .flatMap(
                 it -> it.findElements(
-                    By.xpath("//button[contains(@tooltip,'Modify Variable')]"))
+                    By.className("e2e-var-edit-btn"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No edit button in variable list"))
             .click();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(createVariableForm.buttonSubmit));
-        createVariableForm.inputVariableValue().clear();
-        createVariableForm.inputVariableValue().sendKeys(variableValue);
-        createVariableForm.inputDescription().clear();
-        createVariableForm.inputDescription().sendKeys(description);
+        createVariableForm.inputVariableValue.clear();
+        createVariableForm.inputVariableValue.sendKeys(variableValue);
+        createVariableForm.inputDescription.clear();
+        createVariableForm.inputDescription.sendKeys(description);
         if (notVisible) {
             createVariableForm.buttonDesensitization.click();
         }
-        createVariableForm.buttonSubmit().click();
-
+        createVariableForm.buttonSubmit.click();
         return this;
     }
 
     public VariablesPage deleteVariable(String variableCode) {
         waitForPageLoading();
 
-        variableList().stream()
+        variableList.stream()
             .filter(it -> it.getText().contains(variableCode))
             .flatMap(
                 it -> it.findElements(
-                    By.xpath("//button[contains(@tooltip,'Delete Variable')]"))
+                    By.className("e2e-var-delete-btn"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No delete button in variable list"))
             .click();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(deleteConfirmButton));
 
         deleteConfirmButton.click();
+
         return this;
     }
 
     private void waitForPageLoading() {
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.urlContains("/resource/variable"));
     }
 
@@ -136,21 +137,21 @@ public class VariablesPage extends NavBarPage implements ResourcePage.Tab {
         }
 
         @FindBy(id = "VariableForm_variableCode")
-        private WebElement inputVariableCode;
+        public WebElement inputVariableCode;
 
         @FindBy(id = "VariableForm_variableValue")
-        private WebElement inputVariableValue;
+        public WebElement inputVariableValue;
 
         @FindBy(id = "VariableForm_description")
-        private WebElement inputDescription;
+        public WebElement inputDescription;
 
         @FindBy(id = "VariableForm_desensitization")
-        private WebElement buttonDesensitization;
+        public WebElement buttonDesensitization;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(., 'Submit')]")
-        private WebElement buttonSubmit;
+        @FindBy(className = "e2e-var-submit-btn")
+        public WebElement buttonSubmit;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(., 'Cancel')]")
-        private WebElement buttonCancel;
+        @FindBy(className = "e2e-var-cancel-btn")
+        public WebElement buttonCancel;
     }
 }

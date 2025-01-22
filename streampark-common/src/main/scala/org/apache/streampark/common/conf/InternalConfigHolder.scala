@@ -17,16 +17,14 @@
 
 package org.apache.streampark.common.conf
 
-import org.apache.streampark.common.Constant
+import org.apache.streampark.common.constants.Constants
 import org.apache.streampark.common.util.{Logger, SystemPropertyUtils}
-import org.apache.streampark.common.util.ImplicitsUtils._
+import org.apache.streampark.common.util.Implicits._
 
 import javax.annotation.{Nonnull, Nullable}
 
 import java.util
 import java.util.concurrent.ConcurrentHashMap
-
-import scala.collection.convert.ImplicitConversions._
 
 /**
  * Thread-safe configuration storage containers. All configurations will be automatically
@@ -44,7 +42,9 @@ object InternalConfigHolder extends Logger {
     new ConcurrentHashMap[String, InternalOption](initialCapacity)
 
   /** Initialize the ConfigHub. */
-  Seq(CommonConfig, K8sFlinkConfig)
+  def initConfigHub(): Unit = {
+    Seq(CommonConfig, K8sFlinkConfig)
+  }
 
   /** Register the ConfigOption */
   private[conf] def register(@Nonnull conf: InternalOption): Unit = {
@@ -67,13 +67,19 @@ object InternalConfigHolder extends Logger {
    */
   @Nonnull
   def get[T](@Nonnull conf: InternalOption): T = {
-    confData.get(conf.key) match {
-      case null =>
-        SystemPropertyUtils.get(conf.key) match {
-          case v if v != null => v.cast[T](conf.classType)
-          case _ => conf.defaultValue.asInstanceOf[T]
+    val value = confData.get(conf.key)
+    if (value == null || value == conf.defaultValue) {
+      val v = SystemPropertyUtils.get(conf.key)
+      if (v != null) {
+        if (v != value) {
+          set(conf, v)
         }
-      case v => v.asInstanceOf[T]
+        v.cast[T](conf.classType)
+      } else {
+        conf.defaultValue.asInstanceOf[T]
+      }
+    } else {
+      value.toString.cast[T](conf.classType)
     }
   }
 
@@ -123,7 +129,7 @@ object InternalConfigHolder extends Logger {
 
   /** Get keys of all registered ConfigOption. */
   @Nonnull
-  def keys(): util.Set[String] = {
+  def keys(): JavaSet[String] = {
     val map = new util.HashMap[String, InternalOption](confOptions.size())
     map.putAll(confOptions)
     map.keySet()
@@ -162,7 +168,7 @@ object InternalConfigHolder extends Logger {
                |ConfigHub collected configs: ${configKeys.size}
                |  ${configKeys
                 .map(key =>
-                  s"$key = ${if (key.contains("password")) Constant.DEFAULT_DATAMASK_STRING
+                  s"$key = ${if (key.contains("password")) Constants.DEFAULT_DATAMASK_STRING
                     else get(key)}")
                 .mkString("\n  ")}""".stripMargin)
   }

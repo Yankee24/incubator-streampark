@@ -18,15 +18,17 @@
 package org.apache.streampark.console.core.controller;
 
 import org.apache.streampark.common.enums.ClusterState;
+import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
 import org.apache.streampark.console.base.exception.InternalException;
 import org.apache.streampark.console.core.bean.ResponseResult;
 import org.apache.streampark.console.core.entity.FlinkCluster;
 import org.apache.streampark.console.core.service.FlinkClusterService;
-import org.apache.streampark.console.core.service.ServiceHelper;
+import org.apache.streampark.console.core.util.ServiceHelper;
 
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -45,10 +47,13 @@ public class FlinkClusterController {
     @Autowired
     private FlinkClusterService flinkClusterService;
 
-    @Autowired
-    private ServiceHelper serviceHelper;
+    @PostMapping("page")
+    public RestResponse findPage(FlinkCluster flinkCluster, RestRequest restRequest) {
+        IPage<FlinkCluster> flinkClusters = flinkClusterService.findPage(flinkCluster, restRequest);
+        return RestResponse.success(flinkClusters);
+    }
 
-    @PostMapping("availableList")
+    @PostMapping("alive")
     public RestResponse listAvailableCluster() {
         List<FlinkCluster> flinkClusters = flinkClusterService.listAvailableCluster();
         return RestResponse.success(flinkClusters);
@@ -60,7 +65,7 @@ public class FlinkClusterController {
         return RestResponse.success(flinkClusters);
     }
 
-    @PostMapping("remoteUrl")
+    @PostMapping("remote_url")
     public RestResponse remoteUrl(Long id) {
         FlinkCluster cluster = flinkClusterService.getById(id);
         return RestResponse.success(cluster.getAddress());
@@ -75,7 +80,7 @@ public class FlinkClusterController {
     @PostMapping("create")
     @RequiresPermissions("cluster:create")
     public RestResponse create(FlinkCluster cluster) {
-        Long userId = serviceHelper.getUserId();
+        Long userId = ServiceHelper.getUserId();
         Boolean success = flinkClusterService.create(cluster, userId);
         return RestResponse.success(success);
     }

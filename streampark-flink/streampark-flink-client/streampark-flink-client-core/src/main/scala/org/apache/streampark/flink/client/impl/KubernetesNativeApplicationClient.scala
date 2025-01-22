@@ -17,7 +17,7 @@
 
 package org.apache.streampark.flink.client.impl
 
-import org.apache.streampark.common.enums.FlinkExecutionMode
+import org.apache.streampark.common.enums.FlinkDeployMode
 import org.apache.streampark.flink.client.`trait`.KubernetesNativeClientTrait
 import org.apache.streampark.flink.client.bean._
 import org.apache.streampark.flink.packer.pipeline.DockerImageBuildResponse
@@ -30,8 +30,6 @@ import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions
 
 /**
  * Kubernetes native application mode submit.
- * @deprecated
- *   Please use [[KubernetesApplicationClientV2]] instead.
  */
 object KubernetesNativeApplicationClient extends KubernetesNativeClientTrait {
 
@@ -85,7 +83,7 @@ object KubernetesNativeApplicationClient extends KubernetesNativeClientTrait {
   override def doCancel(cancelRequest: CancelRequest, flinkConf: Configuration): CancelResponse = {
     flinkConf.safeSet(
       DeploymentOptions.TARGET,
-      FlinkExecutionMode.KUBERNETES_NATIVE_APPLICATION.getName)
+      FlinkDeployMode.KUBERNETES_NATIVE_APPLICATION.getName)
     executeClientAction(
       cancelRequest,
       flinkConf,
@@ -101,7 +99,7 @@ object KubernetesNativeApplicationClient extends KubernetesNativeClientTrait {
       flinkConf: Configuration): SavepointResponse = {
     flinkConf.safeSet(
       DeploymentOptions.TARGET,
-      FlinkExecutionMode.KUBERNETES_NATIVE_APPLICATION.getName)
+      FlinkDeployMode.KUBERNETES_NATIVE_APPLICATION.getName)
     super.doTriggerSavepoint(request, flinkConf)
   }
 }

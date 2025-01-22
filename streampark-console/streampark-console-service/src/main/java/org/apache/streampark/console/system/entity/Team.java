@@ -17,21 +17,22 @@
 
 package org.apache.streampark.console.system.entity;
 
+import org.apache.streampark.console.base.mybatis.entity.BaseEntity;
+
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.validation.constraints.Size;
 
-import java.io.Serializable;
-import java.util.Date;
-
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
 @TableName("t_team")
-public class Team implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class Team extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -40,10 +41,6 @@ public class Team implements Serializable {
     private String teamName;
 
     private String description;
-
-    private Date createTime;
-
-    private Date modifyTime;
 
     private transient String createTimeFrom;
 

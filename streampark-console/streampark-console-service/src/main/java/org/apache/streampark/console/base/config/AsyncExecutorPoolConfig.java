@@ -67,6 +67,22 @@ public class AsyncExecutorPoolConfig extends AsyncConfigurerSupport {
     }
 
     /**
+     * Create a ThreadPoolTaskExecutor for SparkAppHttpWatcher.
+     *
+     * @return Executor
+     */
+    @Bean("sparkRestAPIWatchingExecutor")
+    public Executor sparkRestAPIWatchingExecutor() {
+        return new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 5,
+            Runtime.getRuntime().availableProcessors() * 10,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1024),
+            ThreadUtils.threadFactory("spark-cluster-watching-executor-"));
+    }
+
+    /**
      * Create a ThreadPoolTaskExecutor for FlinkClusterWatcher.
      *
      * @return Executor
@@ -165,5 +181,21 @@ public class AsyncExecutorPoolConfig extends AsyncConfigurerSupport {
             new LinkedBlockingQueue<>(1024),
             ThreadUtils.threadFactory("streampark-build-executor-"),
             new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    /**
+     * Create a ThreadPoolTaskExecutor for DistributedTask.
+     *
+     * @return Executor
+     */
+    @Bean("streamparkDistributedTaskExecutor")
+    public Executor distributedTaskExecutor() {
+        return new ThreadPoolExecutor(
+            Runtime.getRuntime().availableProcessors() * 5,
+            Runtime.getRuntime().availableProcessors() * 10,
+            60L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(1024),
+            ThreadUtils.threadFactory("streampark-distributed-task-"));
     }
 }

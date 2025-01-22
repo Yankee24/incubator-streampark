@@ -17,6 +17,7 @@
 
 package org.apache.streampark.e2e.pages;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 
 import lombok.Getter;
@@ -30,7 +31,6 @@ import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.List;
 
 @Getter
@@ -38,48 +38,31 @@ import java.util.List;
 public final class LoginPage extends NavBarPage {
 
     @FindBy(id = "form_item_account")
-    private WebElement inputUsername;
+    public WebElement inputUsername;
 
     @FindBy(id = "form_item_password")
-    private WebElement inputPassword;
+    public WebElement inputPassword;
 
-    @FindBy(xpath = "//button[contains(@classnames, 'login-button')]")
-    private WebElement buttonLogin;
+    @FindBy(id = "e2e-login-btn")
+    public WebElement buttonLogin;
 
-    private final TeamForm teamForm = new TeamForm();
+    private static final String userName = "admin";
+
+    private static final String password = "streampark";
+
+    public final TeamForm teamForm = new TeamForm();
 
     public LoginPage(RemoteWebDriver driver) {
         super(driver);
     }
 
     @SneakyThrows
-    public NavBarPage login(String username, String password, String teamName) {
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+    public NavBarPage login() {
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(buttonLogin));
-
-        inputUsername().sendKeys(username);
-        inputPassword().sendKeys(password);
-        buttonLogin().click();
-
-        try {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
-                .until(ExpectedConditions.visibilityOfAllElements(teamForm.btnSelectTeamDropdown));
-
-            teamForm.btnSelectTeamDropdown.click();
-            teamForm.selectTeam.stream()
-                .filter(it -> it.getText().contains(teamName))
-                .findFirst()
-                .orElseThrow(
-                    () -> new RuntimeException(
-                        String.format("No %s in team dropdown list", teamName)))
-                .click();
-            teamForm.buttonSubmit.click();
-        } catch (Exception e) {
-            log.warn("No team selection required:", e);
-        }
-
-        new WebDriverWait(driver, Duration.ofSeconds(30))
-            .until(ExpectedConditions.urlContains("/flink/app"));
+        inputUsername.sendKeys(userName);
+        inputPassword.sendKeys(password);
+        buttonLogin.click();
         return new NavBarPage(driver);
     }
 
@@ -94,15 +77,15 @@ public final class LoginPage extends NavBarPage {
                 @FindBy(css = "[popupClassName=team-select-popup]"),
                 @FindBy(className = "ant-select-item-option-content")
         })
-        private List<WebElement> selectTeam;
+        public List<WebElement> selectTeam;
 
         @FindBy(css = "[popupClassName=team-select-popup] > .ant-select-selector")
-        private WebElement btnSelectTeamDropdown;
+        public WebElement btnSelectTeamDropdown;
 
         @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'OK')]")
-        private WebElement buttonSubmit;
+        public WebElement buttonSubmit;
 
         @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'Cancel')]")
-        private WebElement buttonCancel;
+        public WebElement buttonCancel;
     }
 }

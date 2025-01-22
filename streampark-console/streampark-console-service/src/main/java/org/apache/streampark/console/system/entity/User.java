@@ -17,27 +17,30 @@
 
 package org.apache.streampark.console.system.entity;
 
-import org.apache.streampark.common.Constant;
+import org.apache.streampark.common.constants.Constants;
+import org.apache.streampark.console.base.mybatis.entity.BaseEntity;
 import org.apache.streampark.console.core.enums.LoginTypeEnum;
 import org.apache.streampark.console.core.enums.UserTypeEnum;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
-import java.io.Serializable;
 import java.util.Date;
 
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
 @TableName("t_user")
-public class User implements Serializable {
+public class User extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
     /** user status */
     public static final String STATUS_VALID = "1";
 
@@ -50,6 +53,8 @@ public class User implements Serializable {
     public static final String SEX_UNKNOWN = "2";
 
     public static final Integer DEFAULT_PASSWORD_LENGTH = 8;
+
+    public static final String DEFAULT_SECRET = "streampark";
 
     @TableId(type = IdType.AUTO)
     private Long userId;
@@ -69,10 +74,6 @@ public class User implements Serializable {
 
     @NotBlank(message = "{required}")
     private String status;
-
-    private Date createTime;
-
-    private Date modifyTime;
 
     private Date lastLoginTime;
 
@@ -97,7 +98,7 @@ public class User implements Serializable {
     private Long lastTeamId;
 
     public void dataMasking() {
-        String dataMask = Constant.DEFAULT_DATAMASK_STRING;
+        String dataMask = Constants.DEFAULT_DATAMASK_STRING;
         this.setPassword(dataMask);
         this.setSalt(dataMask);
     }

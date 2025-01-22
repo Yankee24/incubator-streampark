@@ -17,6 +17,7 @@
 
 package org.apache.streampark.e2e.pages.system;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 import org.apache.streampark.e2e.pages.system.entity.UserManagementStatus;
 import org.apache.streampark.e2e.pages.system.entity.UserManagementUserType;
@@ -32,22 +33,21 @@ import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.List;
 
 @Getter
 public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
 
-    @FindBy(xpath = "//span[contains(., 'User List')]/..//button[contains(@class, 'ant-btn-primary')]/span[contains(text(), 'Add New')]")
-    private WebElement buttonCreateUser;
+    @FindBy(id = "e2e-user-create-btn")
+    public WebElement buttonCreateUser;
 
-    @FindBy(xpath = "//tbody[contains(@class, 'ant-table-tbody')]")
-    private List<WebElement> userList;
+    @FindBy(className = "ant-table-tbody")
+    public List<WebElement> userList;
 
     @FindBy(className = "ant-form-item-explain-error")
-    private List<WebElement> errorMessageList;
+    public List<WebElement> errorMessageList;
 
-    private final CreateUserForm createUserForm = new CreateUserForm();
+    public final CreateUserForm createUserForm = new CreateUserForm();
 
     public UserManagementPage(RemoteWebDriver driver) {
         super(driver);
@@ -61,16 +61,16 @@ public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
                                          UserManagementUserType userManagementUserType) {
         waitForPageLoading();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(buttonCreateUser));
         buttonCreateUser.click();
-        createUserForm.inputUserName().sendKeys(userName);
-        createUserForm.inputNickName().sendKeys(nickName);
-        createUserForm.inputPassword().sendKeys(password);
-        createUserForm.inputEmail().sendKeys(email);
+        createUserForm.inputUserName.sendKeys(userName);
+        createUserForm.inputNickName.sendKeys(nickName);
+        createUserForm.inputPassword.sendKeys(password);
+        createUserForm.inputEmail.sendKeys(email);
 
-        createUserForm.btnSelectUserTypeDropdown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        createUserForm.btnSelectUserTypeDropdown.click();
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.visibilityOfAllElements(createUserForm.selectUserType));
         createUserForm.selectUserType.stream()
             .filter(e -> e.getText().equalsIgnoreCase(String.valueOf(userManagementUserType)))
@@ -81,7 +81,8 @@ public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
                         userManagementUserType)))
             .click();
 
-        createUserForm.buttonSubmit().click();
+        createUserForm.buttonSubmit.click();
+
         return this;
     }
 
@@ -92,22 +93,23 @@ public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
                                        UserManagementStatus userManagementStatus) {
         waitForPageLoading();
 
-        userList().stream()
+        userList
+            .stream()
             .filter(it -> it.getText().contains(userName))
             .flatMap(
-                it -> it.findElements(By.xpath("//button[contains(@tooltip,'modify user')]"))
+                it -> it.findElements(By.className("e2e-user-edit-btn"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No edit button in user list"))
             .click();
 
-        createUserForm.inputEmail().sendKeys(Keys.CONTROL + "a");
-        createUserForm.inputEmail().sendKeys(Keys.BACK_SPACE);
-        createUserForm.inputEmail().sendKeys(email);
+        createUserForm.inputEmail.sendKeys(Keys.CONTROL + "a");
+        createUserForm.inputEmail.sendKeys(Keys.BACK_SPACE);
+        createUserForm.inputEmail.sendKeys(email);
 
-        createUserForm.btnSelectUserTypeDropdown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        createUserForm.btnSelectUserTypeDropdown.click();
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.visibilityOfAllElements(createUserForm.selectUserType));
         createUserForm.selectUserType.stream()
             .filter(e -> e.getText().equalsIgnoreCase(String.valueOf(userManagementUserType)))
@@ -129,13 +131,12 @@ public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
                 throw new RuntimeException("Unknown user management status");
         }
 
-        createUserForm.buttonSubmit().click();
-
+        createUserForm.buttonSubmit.click();
         return this;
     }
 
     private void waitForPageLoading() {
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.urlContains("/system/user"));
     }
 
@@ -147,36 +148,36 @@ public class UserManagementPage extends NavBarPage implements SystemPage.Tab {
         }
 
         @FindBy(id = "formUserName")
-        private WebElement inputUserName;
+        public WebElement inputUserName;
 
         @FindBy(id = "form_item_nickName")
-        private WebElement inputNickName;
+        public WebElement inputNickName;
 
         @FindBy(id = "form_item_password")
-        private WebElement inputPassword;
+        public WebElement inputPassword;
 
         @FindBy(id = "form_item_email")
-        private WebElement inputEmail;
+        public WebElement inputEmail;
 
         @FindBys({
                 @FindBy(css = "[codefield=userType]"),
                 @FindBy(className = "ant-select-item-option-content")
         })
-        private List<WebElement> selectUserType;
+        public List<WebElement> selectUserType;
 
         @FindBy(css = "[codefield=userType] > .ant-select-selector")
-        private WebElement btnSelectUserTypeDropdown;
+        public WebElement btnSelectUserTypeDropdown;
 
         @FindBy(xpath = "//label[contains(@class, 'ant-radio-wrapper')]/span[contains(., 'lock')]")
-        private WebElement radioLocked;
+        public WebElement radioLocked;
 
         @FindBy(xpath = "//label[contains(@class, 'ant-radio-wrapper')]/span[contains(., 'effective')]")
-        private WebElement radioEffective;
+        public WebElement radioEffective;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'Submit')]")
-        private WebElement buttonSubmit;
+        @FindBy(className = "e2e-user-submit-btn")
+        public WebElement buttonSubmit;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'Cancel')]")
-        private WebElement buttonCancel;
+        @FindBy(className = "e2e-user-cancel-btn")
+        public WebElement buttonCancel;
     }
 }

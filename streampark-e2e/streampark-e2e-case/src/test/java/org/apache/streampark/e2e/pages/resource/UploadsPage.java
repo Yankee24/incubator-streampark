@@ -17,9 +17,11 @@
 
 package org.apache.streampark.e2e.pages.resource;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebElement;
@@ -29,47 +31,46 @@ import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.List;
 
 @Getter
 public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
 
-    @FindBy(xpath = "//span[contains(., 'Resource List')]/..//button[contains(@class, 'ant-btn-primary')]/span[contains(text(), 'Add New')]")
-    private WebElement buttonCreateResource;
+    @FindBy(id = "e2e-upload-create-btn")
+    public WebElement buttonCreateResource;
 
-    private final CreateUploadForm createUploadForm = new CreateUploadForm();
+    public final CreateUploadForm createUploadForm = new CreateUploadForm();
 
-    @FindBy(xpath = "//tbody[contains(@class, 'ant-table-tbody')]")
-    private List<WebElement> resourceList;
+    @FindBy(className = "ant-table-tbody")
+    public List<WebElement> resourceList;
 
     @FindBy(className = "swal2-html-container")
-    private List<WebElement> errorMessageList;
+    public List<WebElement> errorMessageList;
 
     @FindBy(xpath = "//button[contains(text(), 'OK')]")
-    private WebElement errorMessageConfirmButton;
+    public WebElement errorMessageConfirmButton;
 
-    @FindBy(xpath = "//button[contains(@class, 'ant-btn')]/span[contains(., 'OK')]")
-    private WebElement deleteConfirmButton;
+    @FindBy(className = "e2e-upload-delete-confirm")
+    public WebElement deleteConfirmButton;
 
     public UploadsPage(RemoteWebDriver driver) {
         super(driver);
     }
 
+    @SneakyThrows
     public UploadsPage createUpload(String engineType, String resourceType, String resourceName,
                                     String resource,
                                     String description) {
         waitForPageLoading();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(buttonCreateResource));
         buttonCreateResource.click();
 
         // select engine type.
-        createUploadForm.btnSelectEngineTypeDropDown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.visibilityOfAllElements(createUploadForm.selectEngineType()));
-        createUploadForm.selectEngineType().stream()
+        createUploadForm.btnSelectEngineTypeDropDown.click();
+        Thread.sleep(Constants.DEFAULT_SLEEP_MILLISECONDS);
+        createUploadForm.selectEngineType.stream()
             .filter(e -> e.getText().equals(engineType))
             .findFirst()
             .orElseThrow(
@@ -78,10 +79,9 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
             .click();
 
         // select resource type.
-        createUploadForm.btnSelectResourceTypeDropDown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.visibilityOfAllElements(createUploadForm.selectResourceType()));
-        createUploadForm.selectResourceType().stream()
+        createUploadForm.btnSelectResourceTypeDropDown.click();
+        Thread.sleep(Constants.DEFAULT_SLEEP_MILLISECONDS);
+        createUploadForm.selectResourceType.stream()
             .filter(e -> e.getText().equals(resourceType))
             .findFirst()
             .orElseThrow(
@@ -89,14 +89,16 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
                     String.format("No %s in resourceType dropdown list", resourceType)))
             .click();
 
-        createUploadForm.inputResourceName().sendKeys(resourceName);
-        createUploadForm.textPom().sendKeys(resource);
-        createUploadForm.inputDescription().sendKeys(description);
+        createUploadForm.inputResourceName.sendKeys(resourceName);
+        createUploadForm.textPom.sendKeys(resource);
+        createUploadForm.inputDescription.sendKeys(description);
 
-        createUploadForm.buttonSubmit().click();
+        createUploadForm.buttonSubmit.click();
+
         return this;
     }
 
+    @SneakyThrows
     public UploadsPage editUpload(String engineType, String resourceType, String resourceName,
                                   String resource, String description) {
         waitForPageLoading();
@@ -104,29 +106,27 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
         resourceList.stream()
             .filter(e -> e.getText().contains(resourceName))
             .flatMap(
-                it -> it.findElements(By.xpath("//button[contains(@tooltip,'Modify Resource')]")).stream())
+                it -> it.findElements(By.className("e2e-upload-edit-btn")).stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No edit button in resource list"))
             .click();
 
         // select engine type.
-        createUploadForm.btnSelectEngineTypeDropDown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.visibilityOfAllElements(createUploadForm.selectEngineType()));
-        createUploadForm.selectResourceType.stream()
+        createUploadForm.btnSelectEngineTypeDropDown.click();
+        Thread.sleep(Constants.DEFAULT_SLEEP_MILLISECONDS);
+        createUploadForm.selectEngineType.stream()
             .filter(e -> e.getText().equals(engineType))
             .findFirst()
             .orElseThrow(
                 () -> new RuntimeException(
-                    String.format("No %s in resourceType dropdown list", resourceType)))
+                    String.format("No %s in engineType dropdown list", resourceType)))
             .click();
 
         // select resource type.
-        createUploadForm.btnSelectResourceTypeDropDown().click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.visibilityOfAllElements(createUploadForm.selectResourceType()));
-        createUploadForm.selectResourceType().stream()
+        createUploadForm.btnSelectResourceTypeDropDown.click();
+        Thread.sleep(Constants.DEFAULT_SLEEP_MILLISECONDS);
+        createUploadForm.selectResourceType.stream()
             .filter(e -> e.getText().equals(resourceType))
             .findFirst()
             .orElseThrow(
@@ -134,12 +134,13 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
                     String.format("No %s in resourceType dropdown list", resourceType)))
             .click();
 
-        createUploadForm.textPom().sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
-        createUploadForm.textPom().sendKeys(resource);
-        createUploadForm.inputDescription().clear();
-        createUploadForm.inputDescription().sendKeys(description);
+        createUploadForm.textPom.sendKeys(Keys.chord(Keys.CONTROL, "a"), Keys.DELETE);
+        createUploadForm.textPom.sendKeys(resource);
+        createUploadForm.inputDescription.clear();
+        createUploadForm.inputDescription.sendKeys(description);
 
-        createUploadForm.buttonSubmit().click();
+        createUploadForm.buttonSubmit.click();
+
         return this;
     }
 
@@ -149,13 +150,13 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
         resourceList.stream()
             .filter(e -> e.getText().contains(resourceName))
             .flatMap(
-                it -> it.findElements(By.xpath("//button[contains(@tooltip,'Delete Resource')]")).stream())
+                it -> it.findElements(By.className("e2e-upload-delete-btn")).stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No delete button in resource list"))
             .click();
 
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.elementToBeClickable(deleteConfirmButton));
 
         deleteConfirmButton.click();
@@ -164,7 +165,7 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
     }
 
     private void waitForPageLoading() {
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.urlContains("/resource/upload"));
     }
 
@@ -179,27 +180,27 @@ public class UploadsPage extends NavBarPage implements ResourcePage.Tab {
         private WebElement btnSelectEngineTypeDropDown;
 
         @FindBy(xpath = "//*[@id='form_item_engineType']//following::div[@class='ant-select-item-option-content']")
-        private List<WebElement> selectEngineType;
+        public List<WebElement> selectEngineType;
 
         @FindBy(xpath = "//*[@id='form_item_resourceType']/ancestor::div[contains(@class, 'ant-select-selector')]")
-        private WebElement btnSelectResourceTypeDropDown;
+        public WebElement btnSelectResourceTypeDropDown;
 
         @FindBy(xpath = "//*[@id='form_item_resourceType']//following::div[@class='ant-select-item-option-content']")
-        private List<WebElement> selectResourceType;
+        public List<WebElement> selectResourceType;
 
-        @FindBy(id = "ResourceForm_resourceName")
-        private WebElement inputResourceName;
+        @FindBy(id = "upload_form_resourceName")
+        public WebElement inputResourceName;
 
         @FindBy(css = "textarea.inputarea.monaco-mouse-cursor-text")
-        private WebElement textPom;
+        public WebElement textPom;
 
-        @FindBy(id = "ResourceForm_description")
-        private WebElement inputDescription;
+        @FindBy(id = "upload_form_description")
+        public WebElement inputDescription;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'Submit')]")
-        private WebElement buttonSubmit;
+        @FindBy(className = "e2e-upload-submit-btn")
+        public WebElement buttonSubmit;
 
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(text(), 'Cancel')]")
-        private WebElement buttonCancel;
+        @FindBy(className = "e2e-upload-cancel-btn")
+        public WebElement buttonCancel;
     }
 }

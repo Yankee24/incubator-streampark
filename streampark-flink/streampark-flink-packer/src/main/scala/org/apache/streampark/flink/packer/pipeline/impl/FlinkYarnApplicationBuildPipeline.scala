@@ -18,17 +18,15 @@
 package org.apache.streampark.flink.packer.pipeline.impl
 
 import org.apache.streampark.common.conf.Workspace
-import org.apache.streampark.common.enums.FlinkDevelopmentMode
+import org.apache.streampark.common.enums.FlinkJobType
 import org.apache.streampark.common.fs.{FsOperator, HdfsOperator, LfsOperator}
-import org.apache.streampark.common.util.ImplicitsUtils._
+import org.apache.streampark.common.util.Implicits._
 import org.apache.streampark.flink.packer.maven.MavenTool
 import org.apache.streampark.flink.packer.pipeline._
 
 import org.apache.commons.codec.digest.DigestUtils
 
 import java.io.{File, FileInputStream, IOException}
-
-import scala.collection.convert.ImplicitConversions._
 
 /** Building pipeline for flink yarn application mode */
 class FlinkYarnApplicationBuildPipeline(request: FlinkYarnApplicationBuildRequest)
@@ -47,8 +45,8 @@ class FlinkYarnApplicationBuildPipeline(request: FlinkYarnApplicationBuildReques
   @throws[Throwable]
   override protected def buildProcess(): SimpleBuildResponse = {
     execStep(1) {
-      request.developmentMode match {
-        case FlinkDevelopmentMode.FLINK_SQL | FlinkDevelopmentMode.PYFLINK =>
+      request.flinkJobType match {
+        case FlinkJobType.FLINK_SQL | FlinkJobType.FLINK_CDC | FlinkJobType.PYFLINK =>
           LfsOperator.mkCleanDirs(request.localWorkspace)
           HdfsOperator.mkCleanDirs(request.yarnProvidedPath)
         case _ =>
@@ -58,8 +56,8 @@ class FlinkYarnApplicationBuildPipeline(request: FlinkYarnApplicationBuildReques
 
     val mavenJars =
       execStep(2) {
-        request.developmentMode match {
-          case FlinkDevelopmentMode.FLINK_SQL | FlinkDevelopmentMode.PYFLINK =>
+        request.flinkJobType match {
+          case FlinkJobType.FLINK_SQL | FlinkJobType.FLINK_SQL | FlinkJobType.PYFLINK =>
             val mavenArts =
               MavenTool.resolveArtifacts(request.dependencyInfo.mavenArts)
             mavenArts.map(_.getAbsolutePath) ++ request.dependencyInfo.extJarLibs

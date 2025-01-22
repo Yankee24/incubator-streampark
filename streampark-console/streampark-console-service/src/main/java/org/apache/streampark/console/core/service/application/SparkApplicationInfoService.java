@@ -46,15 +46,6 @@ public interface SparkApplicationInfoService extends IService<SparkApplication> 
     boolean checkEnv(SparkApplication appParam) throws ApplicationException;
 
     /**
-     * Checks the savepoint path for the given application.
-     *
-     * @param appParam the application to check the savepoint path for
-     * @return the check message
-     * @throws Exception if an error occurs while checking the savepoint path
-     */
-    String checkSavepointPath(SparkApplication appParam) throws Exception;
-
-    /**
      * Checks if the given application meets the required alterations.
      *
      * @param appParam The application to be checked.
@@ -88,39 +79,6 @@ public interface SparkApplicationInfoService extends IService<SparkApplication> 
     boolean existsBySparkEnvId(Long sparkEnvId);
 
     /**
-     * Checks if a job is running for a given cluster ID.
-     *
-     * @param clusterId The ID of the cluster.
-     * @return true if a job is running for the given cluster ID; otherwise, false.
-     */
-    boolean existsRunningByClusterId(Long clusterId);
-
-    /**
-     * Checks if there is a job that is associated with the given cluster ID.
-     *
-     * @param clusterId The ID of the cluster.
-     * @return True if a job exists for the given cluster ID, false otherwise.
-     */
-    boolean existsByClusterId(Long clusterId);
-
-    /**
-     * Counts the number of items associated with the given cluster ID.
-     *
-     * @param clusterId The ID of the cluster.
-     * @return The number of items associated with the given cluster ID.
-     */
-    Integer countByClusterId(Long clusterId);
-
-    /**
-     * Counts the number of items associated with the given cluster ID and database type.
-     *
-     * @param clusterId The ID of the cluster.
-     * @param dbType The type of the database.
-     * @return The number of items associated with the given cluster ID and database type.
-     */
-    Integer countAffectedByClusterId(Long clusterId, String dbType);
-
-    /**
      * Gets the YARN name for the given application.
      *
      * @param appConfig The application's config for which to retrieve the YARN name.
@@ -146,14 +104,6 @@ public interface SparkApplicationInfoService extends IService<SparkApplication> 
     String readConf(String appConfig) throws IOException;
 
     /**
-     * Retrieves the main configuration value for the given Application.
-     *
-     * @param appParam the Application object for which to fetch the main configuration value
-     * @return the main configuration value as a String
-     */
-    String getMain(SparkApplication appParam);
-
-    /**
      * Returns the dashboard for the specified team.
      *
      * @param teamId the ID of the team
@@ -169,41 +119,11 @@ public interface SparkApplicationInfoService extends IService<SparkApplication> 
     List<String> listRecentK8sNamespace();
 
     /**
-     * Retrieves the list of recent K8s cluster IDs based on the specified execution mode.
+     * Retrieves the recent K8s container images
      *
-     * @param executionMode The execution mode to filter the recent K8s cluster IDs. 1: Production
-     *     mode 2: Test mode 3: Development mode -1: All modes
-     * @return The list of recent K8s cluster IDs based on the specified execution mode.
+     * @return a List of Strings representing the recent K8s container images.
      */
-    List<String> listRecentK8sClusterId(Integer executionMode);
-
-    /**
-     * Retrieves the recent K8s pod templates.
-     *
-     * @return a List of Strings representing the recent K8s pod templates.
-     */
-    List<String> listRecentK8sPodTemplate();
-
-    /**
-     * Retrieves the list of recent Kubernetes Job Manager Pod templates.
-     *
-     * @return A List of string values representing the recent Kubernetes Job Manager Pod templates.
-     */
-    List<String> listRecentK8sJmPodTemplate();
-
-    /**
-     * Retrieves the list of recent K8s TM pod templates.
-     *
-     * @return The list of recent K8s TM pod templates as a List of String objects.
-     */
-    List<String> listRecentK8sTmPodTemplate();
-
-    /**
-     * Uploads a list of jars to the server for historical reference.
-     *
-     * @return A list of strings representing the names of the uploaded jars.
-     */
-    List<String> listHistoryUploadJars();
+    List<String> listRecentK8sContainerImage();
 
     /**
      * check application before start

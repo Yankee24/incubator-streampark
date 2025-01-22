@@ -22,14 +22,14 @@ import org.apache.streampark.common.util.YarnUtils;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
 import org.apache.streampark.console.base.exception.InternalException;
-import org.apache.streampark.console.core.annotation.AppUpdated;
-import org.apache.streampark.console.core.entity.ApplicationBackUp;
+import org.apache.streampark.console.core.annotation.AppChangeEvent;
 import org.apache.streampark.console.core.entity.ApplicationLog;
+import org.apache.streampark.console.core.entity.FlinkApplicationBackup;
 import org.apache.streampark.console.core.entity.SparkApplication;
 import org.apache.streampark.console.core.enums.AppExistsStateEnum;
-import org.apache.streampark.console.core.service.ApplicationBackUpService;
-import org.apache.streampark.console.core.service.ApplicationLogService;
 import org.apache.streampark.console.core.service.ResourceService;
+import org.apache.streampark.console.core.service.application.ApplicationLogService;
+import org.apache.streampark.console.core.service.application.FlinkApplicationBackupService;
 import org.apache.streampark.console.core.service.application.SparkApplicationActionService;
 import org.apache.streampark.console.core.service.application.SparkApplicationInfoService;
 import org.apache.streampark.console.core.service.application.SparkApplicationManageService;
@@ -43,7 +43,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +66,7 @@ public class SparkApplicationController {
     private SparkApplicationInfoService applicationInfoService;
 
     @Autowired
-    private ApplicationBackUpService backUpService;
+    private FlinkApplicationBackupService backUpService;
 
     @Autowired
     private ApplicationLogService applicationLogService;
@@ -89,14 +88,14 @@ public class SparkApplicationController {
         return RestResponse.success(saved);
     }
 
-    @PostMapping(value = "copy")
+    @PostMapping("copy")
     @RequiresPermissions("app:copy")
     public RestResponse copy(SparkApplication app) throws IOException {
         applicationManageService.copy(app);
         return RestResponse.success();
     }
 
-    @AppUpdated
+    @AppChangeEvent
     @PostMapping("update")
     @RequiresPermissions("app:update")
     public RestResponse update(SparkApplication app) {
@@ -117,7 +116,7 @@ public class SparkApplicationController {
         return RestResponse.success(applicationList);
     }
 
-    @AppUpdated
+    @AppChangeEvent
     @PostMapping("mapping")
     @RequiresPermissions("app:mapping")
     public RestResponse mapping(SparkApplication app) {
@@ -125,7 +124,7 @@ public class SparkApplicationController {
         return RestResponse.success(flag);
     }
 
-    @AppUpdated
+    @AppChangeEvent
     @PostMapping("revoke")
     @RequiresPermissions("app:release")
     public RestResponse revoke(SparkApplication app) {
@@ -133,14 +132,14 @@ public class SparkApplicationController {
         return RestResponse.success();
     }
 
-    @PostMapping(value = "check_start")
+    @PostMapping("check/start")
     @RequiresPermissions("app:start")
     public RestResponse checkStart(SparkApplication app) {
         AppExistsStateEnum stateEnum = applicationInfoService.checkStart(app.getId());
         return RestResponse.success(stateEnum.get());
     }
 
-    @PostMapping(value = "start")
+    @PostMapping("start")
     @RequiresPermissions("app:start")
     public RestResponse start(SparkApplication app) {
         try {
@@ -151,14 +150,14 @@ public class SparkApplicationController {
         }
     }
 
-    @PostMapping(value = "cancel")
+    @PostMapping("cancel")
     @RequiresPermissions("app:cancel")
     public RestResponse cancel(SparkApplication app) throws Exception {
         applicationActionService.cancel(app);
         return RestResponse.success();
     }
 
-    @AppUpdated
+    @AppChangeEvent
     @PostMapping("clean")
     @RequiresPermissions("app:clean")
     public RestResponse clean(SparkApplication app) {
@@ -184,37 +183,31 @@ public class SparkApplicationController {
         return RestResponse.success(yarnName);
     }
 
-    @PostMapping("checkName")
+    @PostMapping("check/name")
     public RestResponse checkName(SparkApplication app) {
         AppExistsStateEnum exists = applicationInfoService.checkExists(app);
         return RestResponse.success(exists.get());
     }
 
-    @PostMapping("readConf")
+    @PostMapping("read_conf")
     public RestResponse readConf(SparkApplication app) throws IOException {
         String config = applicationInfoService.readConf(app.getConfig());
         return RestResponse.success(config);
     }
 
-    @PostMapping("main")
-    public RestResponse getMain(SparkApplication application) {
-        String mainClass = applicationInfoService.getMain(application);
-        return RestResponse.success(mainClass);
-    }
-
     @PostMapping("backups")
-    public RestResponse backups(ApplicationBackUp backUp, RestRequest request) {
-        IPage<ApplicationBackUp> backups = backUpService.getPage(backUp, request);
+    public RestResponse backups(FlinkApplicationBackup backUp, RestRequest request) {
+        IPage<FlinkApplicationBackup> backups = backUpService.getPage(backUp, request);
         return RestResponse.success(backups);
     }
 
-    @PostMapping("optionlog")
+    @PostMapping("opt_log")
     public RestResponse optionlog(ApplicationLog applicationLog, RestRequest request) {
         IPage<ApplicationLog> applicationList = applicationLogService.getPage(applicationLog, request);
         return RestResponse.success(applicationList);
     }
 
-    @PostMapping("deleteOperationLog")
+    @PostMapping("delete/opt_log")
     @RequiresPermissions("app:delete")
     public RestResponse deleteOperationLog(Long id) {
         Boolean deleted = applicationLogService.removeById(id);
@@ -228,13 +221,13 @@ public class SparkApplicationController {
         return RestResponse.success(deleted);
     }
 
-    @PostMapping("deletebak")
-    public RestResponse deleteBak(ApplicationBackUp backUp) throws InternalException {
+    @PostMapping("delete/bak")
+    public RestResponse deleteBak(FlinkApplicationBackup backUp) throws InternalException {
         Boolean deleted = backUpService.removeById(backUp.getId());
         return RestResponse.success(deleted);
     }
 
-    @PostMapping("checkjar")
+    @PostMapping("check/jar")
     public RestResponse checkjar(String jar) {
         File file = new File(jar);
         try {
@@ -245,14 +238,7 @@ public class SparkApplicationController {
         }
     }
 
-    @PostMapping("upload")
-    @RequiresPermissions("app:create")
-    public RestResponse upload(MultipartFile file) throws Exception {
-        String uploadPath = resourceService.upload(file);
-        return RestResponse.success(uploadPath);
-    }
-
-    @PostMapping("verifySchema")
+    @PostMapping("verify_schema")
     public RestResponse verifySchema(String path) {
         final URI uri = URI.create(path);
         final String scheme = uri.getScheme();

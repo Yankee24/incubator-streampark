@@ -22,12 +22,12 @@ import org.apache.streampark.console.core.bean.MavenConfig;
 import org.apache.streampark.console.core.bean.ResponseResult;
 import org.apache.streampark.console.core.bean.SenderEmail;
 import org.apache.streampark.console.core.entity.Setting;
+import org.apache.streampark.console.core.enums.EngineTypeEnum;
 import org.apache.streampark.console.core.mapper.SettingMapper;
 import org.apache.streampark.console.core.service.SettingService;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.AuthConfig;
@@ -68,21 +68,16 @@ public class SettingServiceImpl extends ServiceImpl<SettingMapper, Setting>
 
     @Override
     public Setting get(String key) {
-        LambdaQueryWrapper<Setting> queryWrapper = new LambdaQueryWrapper<Setting>().eq(Setting::getSettingKey, key);
-        return this.getOne(queryWrapper);
+        return this.lambdaQuery().eq(Setting::getSettingKey, key).one();
     }
 
     @Override
     public boolean update(Setting setting) {
         try {
             String value = StringUtils.trimToNull(setting.getSettingValue());
-            setting.setSettingValue(value);
-
-            Setting entity = new Setting();
-            entity.setSettingValue(setting.getSettingValue());
-            LambdaQueryWrapper<Setting> queryWrapper = new LambdaQueryWrapper<Setting>().eq(Setting::getSettingKey,
-                setting.getSettingKey());
-            this.update(entity, queryWrapper);
+            this.lambdaUpdate().eq(Setting::getSettingKey, setting.getSettingKey())
+                .set(Setting::getSettingValue, value)
+                .update();
 
             getMavenConfig().updateConfig();
 
@@ -140,6 +135,13 @@ public class SettingServiceImpl extends ServiceImpl<SettingMapper, Setting>
         return SETTINGS
             .getOrDefault(SettingService.KEY_INGRESS_MODE_DEFAULT, emptySetting)
             .getSettingValue();
+    }
+
+    @Override
+    public EngineTypeEnum getEngine() {
+        return EngineTypeEnum.valueOf(SETTINGS
+            .getOrDefault(SettingService.KEY_DEFAULT_ENGINE, emptySetting)
+            .getSettingValue().toUpperCase());
     }
 
     @Override

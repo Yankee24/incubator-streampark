@@ -32,7 +32,6 @@ import org.apache.streampark.console.system.service.RoleService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -44,7 +43,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,19 +63,18 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Override
     public IPage<Role> getPage(Role role, RestRequest request) {
         Page<Role> page = MybatisPager.getPage(request);
-        return this.baseMapper.selectPage(page, role);
+        return this.lambdaQuery()
+            .like(StringUtils.isNotBlank(role.getRoleName()), Role::getRoleName, role.getRoleName())
+            .page(page);
     }
 
     @Override
     public Role getByName(String roleName) {
-        return baseMapper.selectOne(new LambdaQueryWrapper<Role>().eq(Role::getRoleName, roleName));
+        return this.lambdaQuery().eq(Role::getRoleName, roleName).one();
     }
 
     @Override
     public void createRole(Role role) {
-        Date date = new Date();
-        role.setCreateTime(date);
-        role.setModifyTime(date);
         this.save(role);
 
         String[] menuIds = role.getMenuId().split(StringPool.COMMA);
@@ -103,12 +100,8 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Override
     public void updateRole(Role role) {
-        role.setModifyTime(new Date());
         baseMapper.updateById(role);
-        LambdaQueryWrapper<RoleMenu> queryWrapper = new LambdaQueryWrapper<RoleMenu>().eq(RoleMenu::getRoleId,
-            role.getRoleId());
-        roleMenuMapper.delete(queryWrapper);
-
+        roleMenuService.removeByRoleId(role.getRoleId());
         String menuId = role.getMenuId();
         if (StringUtils.contains(menuId, Constant.APP_DETAIL_MENU_ID)
             && !StringUtils.contains(menuId, Constant.APP_MENU_ID)) {
@@ -127,5 +120,10 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             roleMenus.add(rm);
         }
         roleMenuService.saveBatch(roleMenus);
+    }
+
+    @Override
+    public Role getSysDefaultRole() {
+        return this.lambdaQuery().eq(Role::getRoleId, Constant.DEFAULT_ROLE_ID).one();
     }
 }

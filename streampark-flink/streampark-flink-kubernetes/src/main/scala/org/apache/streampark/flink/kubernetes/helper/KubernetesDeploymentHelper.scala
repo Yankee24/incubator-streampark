@@ -18,17 +18,16 @@
 package org.apache.streampark.flink.kubernetes.helper
 
 import org.apache.streampark.common.util.{Logger, SystemPropertyUtils}
-import org.apache.streampark.common.util.ImplicitsUtils._
+import org.apache.streampark.common.util.Implicits._
 import org.apache.streampark.flink.kubernetes.KubernetesRetriever
 
 import com.google.common.base.Charsets
 import com.google.common.io.Files
-import io.fabric8.kubernetes.api.model.Pod
-import io.fabric8.kubernetes.client.DefaultKubernetesClient
+import org.apache.flink.kubernetes.shaded.io.fabric8.kubernetes.api.model.Pod
+import org.apache.flink.kubernetes.shaded.io.fabric8.kubernetes.client.DefaultKubernetesClient
 
 import java.io.File
 
-import scala.collection.convert.ImplicitConversions._
 import scala.util.{Success, Try}
 
 object KubernetesDeploymentHelper extends Logger {
@@ -76,7 +75,7 @@ object KubernetesDeploymentHelper extends Logger {
       .autoClose(client => {
         val map = client.apps.deployments.inNamespace(nameSpace)
         map.withLabel("app", deploymentName).delete
-        map.withName(deploymentName).delete
+        map.withName(deploymentName).delete()
       })
   }
 
@@ -86,7 +85,7 @@ object KubernetesDeploymentHelper extends Logger {
       .autoClose(client => {
         val map = client.configMaps().inNamespace(nameSpace)
         map.withLabel("app", deploymentName).delete
-        map.withName(deploymentName).delete
+        map.withName(deploymentName).delete()
       })
   }
 

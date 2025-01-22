@@ -17,33 +17,34 @@
 
 package org.apache.streampark.spark.client
 
-import org.apache.streampark.common.enums.SparkExecutionMode
-import org.apache.streampark.common.enums.SparkExecutionMode._
+import org.apache.streampark.common.enums.SparkDeployMode
 import org.apache.streampark.spark.client.`trait`.SparkClientTrait
 import org.apache.streampark.spark.client.bean._
 import org.apache.streampark.spark.client.impl._
 
+import SparkDeployMode._
+
 object SparkClientEndpoint {
 
-  private[this] val clients: Map[SparkExecutionMode, SparkClientTrait] = Map(
-    YARN_CLUSTER -> YarnApplicationClient,
-    YARN_CLIENT -> YarnApplicationClient)
+  private[this] val clients: Map[SparkDeployMode, SparkClientTrait] = Map(
+    YARN_CLUSTER -> YarnClient,
+    YARN_CLIENT -> YarnClient)
 
   def submit(submitRequest: SubmitRequest): SubmitResponse = {
-    clients.get(submitRequest.executionMode) match {
+    clients.get(submitRequest.deployMode) match {
       case Some(client) => client.submit(submitRequest)
       case _ =>
         throw new UnsupportedOperationException(
-          s"Unsupported ${submitRequest.executionMode} submit ")
+          s"Unsupported ${submitRequest.deployMode} spark submit.")
     }
   }
 
-  def cancel(cancelRequest: CancelRequest): CancelResponse = {
-    clients.get(cancelRequest.executionMode) match {
-      case Some(client) => client.cancel(cancelRequest)
+  def cancel(stopRequest: CancelRequest): CancelResponse = {
+    clients.get(stopRequest.deployMode) match {
+      case Some(client) => client.cancel(stopRequest)
       case _ =>
         throw new UnsupportedOperationException(
-          s"Unsupported ${cancelRequest.executionMode} cancel ")
+          s"Unsupported ${stopRequest.deployMode} spark stop.")
     }
   }
 

@@ -19,7 +19,7 @@ package org.apache.streampark.console.core.controller;
 
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.domain.RestResponse;
-import org.apache.streampark.console.core.entity.Application;
+import org.apache.streampark.console.core.entity.FlinkApplication;
 import org.apache.streampark.console.core.entity.Variable;
 import org.apache.streampark.console.core.service.VariableService;
 
@@ -83,10 +83,10 @@ public class VariableController {
         return RestResponse.success(variableList);
     }
 
-    @PostMapping("dependApps")
+    @PostMapping("depend_apps")
     @RequiresPermissions("variable:depend_apps")
     public RestResponse dependApps(RestRequest restRequest, Variable variable) {
-        IPage<Application> dependApps = variableService.getDependAppsPage(variable, restRequest);
+        IPage<FlinkApplication> dependApps = variableService.getDependAppsPage(variable, restRequest);
         return RestResponse.success(dependApps);
     }
 
@@ -104,7 +104,7 @@ public class VariableController {
         return RestResponse.success();
     }
 
-    @PostMapping("showOriginal")
+    @PostMapping("show_original")
     @RequiresPermissions("variable:show_original")
     public RestResponse showOriginal(@RequestParam Long id) {
         Variable v = this.variableService.getById(id);

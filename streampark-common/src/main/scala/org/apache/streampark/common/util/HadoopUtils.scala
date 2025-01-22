@@ -19,6 +19,7 @@ package org.apache.streampark.common.util
 
 import org.apache.streampark.common.conf.{CommonConfig, InternalConfigHolder}
 import org.apache.streampark.common.conf.ConfigKeys._
+import org.apache.streampark.common.util.Implicits._
 
 import org.apache.commons.collections.CollectionUtils
 import org.apache.commons.lang3.StringUtils
@@ -27,7 +28,7 @@ import org.apache.hadoop.fs._
 import org.apache.hadoop.hdfs.DistributedFileSystem
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.hadoop.service.Service.STATE
-import org.apache.hadoop.yarn.api.records.{ApplicationId, YarnApplicationState}
+import org.apache.hadoop.yarn.api.records.{ApplicationId, FinalApplicationStatus, YarnApplicationState}
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 
@@ -39,7 +40,6 @@ import java.util
 import java.util.{Timer, TimerTask}
 import java.util.concurrent._
 
-import scala.collection.convert.ImplicitConversions._
 import scala.util.{Failure, Success, Try}
 
 object HadoopUtils extends Logger {
@@ -233,10 +233,21 @@ object HadoopUtils extends Logger {
 
   def yarnClient: YarnClient = {
     if (reusableYarnClient == null || !reusableYarnClient.isInState(STATE.STARTED)) {
-      reusableYarnClient = YarnClient.createYarnClient
-      val yarnConf = new YarnConfiguration(hadoopConf)
-      reusableYarnClient.init(yarnConf)
-      reusableYarnClient.start()
+      reusableYarnClient = Try {
+        getUgi().doAs(new PrivilegedAction[YarnClient]() {
+          override def run(): YarnClient = {
+            val yarnConf = new YarnConfiguration(hadoopConf);
+            val client = YarnClient.createYarnClient;
+            client.init(yarnConf);
+            client.start();
+            client
+          }
+        })
+      } match {
+        case Success(client) => client
+        case Failure(e) =>
+          throw new IllegalArgumentException(s"[StreamPark] access yarnClient error: $e")
+      }
     }
     reusableYarnClient
   }
@@ -264,6 +275,10 @@ object HadoopUtils extends Logger {
 
   def toYarnState(state: String): YarnApplicationState = {
     YarnApplicationState.values.find(_.name() == state).orNull
+  }
+
+  def toYarnFinalStatus(state: String): FinalApplicationStatus = {
+    FinalApplicationStatus.values.find(_.name() == state).orNull
   }
 
   private class HadoopConfiguration extends Configuration {

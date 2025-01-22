@@ -17,6 +17,7 @@
 
 package org.apache.streampark.console.core.entity;
 
+import org.apache.streampark.console.base.mybatis.entity.BaseEntity;
 import org.apache.streampark.console.core.enums.EngineTypeEnum;
 import org.apache.streampark.console.core.enums.ResourceTypeEnum;
 
@@ -25,17 +26,18 @@ import org.apache.commons.lang3.StringUtils;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import java.io.Serializable;
-import java.util.Date;
-
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
 @TableName("t_resource")
-public class Resource implements Serializable {
+public class Resource extends BaseEntity {
 
     private static final long serialVersionUID = 1L;
 
@@ -60,7 +62,7 @@ public class Resource implements Serializable {
 
     private EngineTypeEnum engineType;
 
-    // for flink app
+    // for flink or spark app
     private String mainClass;
 
     // for flink connector
@@ -75,17 +77,13 @@ public class Resource implements Serializable {
     @NotNull(message = "{required}")
     private Long teamId;
 
-    private Date createTime;
-
-    private Date modifyTime;
-
     private transient String connector;
 
     public void setResourcePath(String resourcePath) {
         if (StringUtils.isBlank(resourcePath)) {
             throw new IllegalArgumentException("resource path cannot be null.");
         }
-        String[] namePath = resourcePath.split(":");
+        String[] namePath = resourcePath.split(":", 2);
         if (namePath.length != 2) {
             throw new IllegalArgumentException("resource path invalid, format: $name:$path");
         }
@@ -103,6 +101,6 @@ public class Resource implements Serializable {
         if (StringUtils.isBlank(this.resourcePath)) {
             return null;
         }
-        return resourcePath.split(":")[1];
+        return resourcePath.split(":", 2)[1];
     }
 }

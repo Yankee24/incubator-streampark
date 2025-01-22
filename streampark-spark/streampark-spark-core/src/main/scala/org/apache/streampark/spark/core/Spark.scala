@@ -87,7 +87,7 @@ trait Spark extends Logger {
     val parameterTool = ParameterTool.fromArgs(args)
 
     val sparkSqls = {
-      val sql = parameterTool.get(KEY_FLINK_SQL())
+      val sql = parameterTool.get(KEY_SPARK_SQL())
       require(StringUtils.isNotBlank(sql), "Usage: spark sql cannot be null")
       Try(DeflaterUtils.unzipString(sql)) match {
         case Success(value) => value
@@ -156,11 +156,9 @@ trait Spark extends Logger {
           throw new IllegalArgumentException(
             "[StreamPark] Usage: config file error,must be [properties|yaml|conf]")
       }
-
-      sparkConf.setAll(localConf)
+      localConf.foreach(arg => sparkConf.set(arg._1, arg._2))
     }
-
-    sparkConf.setAll(userArgs)
+    userArgs.foreach(arg => sparkConf.set(arg._1, arg._2))
 
     val appMain = sparkConf.get(KEY_SPARK_MAIN_CLASS, "org.apache.streampark.spark.cli.SqlClient")
     if (appMain == null) {

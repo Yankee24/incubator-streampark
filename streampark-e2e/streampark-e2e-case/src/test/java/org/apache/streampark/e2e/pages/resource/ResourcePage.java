@@ -17,6 +17,7 @@
 
 package org.apache.streampark.e2e.pages.resource;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 import org.apache.streampark.e2e.pages.common.NavBarPage.NavBarItem;
 
@@ -27,19 +28,17 @@ import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
-
 @Getter
 public final class ResourcePage extends NavBarPage implements NavBarItem {
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Variables')]//..")
-    private WebElement menuVariables;
+    @FindBy(className = "menu-item-resource_variable")
+    public WebElement menuVariables;
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Projects')]//..")
-    private WebElement menuProjects;
+    @FindBy(className = "menu-item-resource_project")
+    public WebElement menuProjects;
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Uploads')]//..")
-    private WebElement menuUploads;
+    @FindBy(className = "menu-item-resource_upload")
+    public WebElement menuUploads;
 
     public ResourcePage(RemoteWebDriver driver) {
         super(driver);
@@ -47,21 +46,21 @@ public final class ResourcePage extends NavBarPage implements NavBarItem {
 
     public <T extends ResourcePage.Tab> T goToTab(Class<T> tab) {
         if (tab == VariablesPage.class) {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
                 .until(ExpectedConditions.elementToBeClickable(menuVariables));
             menuVariables.click();
             return tab.cast(new VariablesPage(driver));
         }
 
         if (tab == ProjectsPage.class) {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
                 .until(ExpectedConditions.elementToBeClickable(menuProjects));
             menuProjects.click();
             return tab.cast(new ProjectsPage(driver));
         }
 
         if (tab == UploadsPage.class) {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
                 .until(ExpectedConditions.elementToBeClickable(menuUploads));
             menuUploads.click();
             return tab.cast(new UploadsPage(driver));

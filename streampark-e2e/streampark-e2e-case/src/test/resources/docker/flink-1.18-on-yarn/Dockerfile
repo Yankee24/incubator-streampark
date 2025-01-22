@@ -16,6 +16,7 @@
 #
 
 FROM apache/streampark:ci as base-image
+FROM flink:1.18.1-scala_2.12-java8 as flink-image
 
 # Install streampark
 FROM sbloodys/hadoop:3.3.6
@@ -23,13 +24,9 @@ COPY --from=base-image /streampark /streampark
 RUN sudo chown -R hadoop.hadoop /streampark \
     && sed -i "s/hadoop-user-name: hdfs$/hadoop-user-name: hadoop/g" /streampark/conf/config.yaml
 
-ENV FLINK_VERSION 1.18.1
-
 # Install Flink
-RUN sudo wget --no-check-certificate -O /flink-${FLINK_VERSION}-bin-scala_2.12.tgz https://archive.apache.org/dist/flink/flink-${FLINK_VERSION}/flink-${FLINK_VERSION}-bin-scala_2.12.tgz \
-    && cd / \
-    && sudo tar -zxf flink-${FLINK_VERSION}-bin-scala_2.12.tgz \
-    && sudo chown -R hadoop.hadoop /flink-${FLINK_VERSION}
+COPY --from=flink-image /opt/flink /flink-1.18.1
+RUN sudo chown -R hadoop.hadoop /flink-1.18.1
 
 # Install javac
 ARG TARGETPLATFORM
@@ -38,6 +35,7 @@ RUN \
     if [ "$TARGETPLATFORM" = "linux/arm64" ];then \
         sudo rm -f /etc/yum.repos.d/*.repo; \
         sudo wget http://mirrors.aliyun.com/repo/Centos-altarch-7.repo -O /etc/yum.repos.d/CentOS-Base.repo; \
+        sudo sed -i "s/http:\/\//https:\/\//g" /etc/yum.repos.d/CentOS-Base.repo; \
         sudo yum install -y java-1.8.0-openjdk-devel; \
     elif [ "$TARGETPLATFORM" = "linux/amd64" ];then \
         sudo yum install -y java-1.8.0-openjdk-devel; \

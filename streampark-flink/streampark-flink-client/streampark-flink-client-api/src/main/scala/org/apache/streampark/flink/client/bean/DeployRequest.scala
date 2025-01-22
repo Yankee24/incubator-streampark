@@ -18,7 +18,8 @@
 package org.apache.streampark.flink.client.bean
 
 import org.apache.streampark.common.conf.{FlinkVersion, Workspace}
-import org.apache.streampark.common.enums.{FlinkExecutionMode, FlinkK8sRestExposedType}
+import org.apache.streampark.common.enums.{FlinkDeployMode, FlinkK8sRestExposedType}
+import org.apache.streampark.common.util.Implicits._
 import org.apache.streampark.flink.util.FlinkUtils
 
 import org.apache.commons.io.FileUtils
@@ -27,11 +28,10 @@ import org.apache.flink.kubernetes.configuration.KubernetesConfigOptions
 import javax.annotation.Nullable
 
 import java.io.File
-import java.util.{Map => JavaMap}
 
 case class DeployRequest(
     flinkVersion: FlinkVersion,
-    executionMode: FlinkExecutionMode,
+    deployMode: FlinkDeployMode,
     properties: JavaMap[String, Any],
     clusterId: String,
     id: Long,
@@ -59,8 +59,7 @@ case class DeployRequest(
       flinkLib = s"$flinkHdfsHome/lib",
       flinkPlugins = s"$flinkHdfsHome/plugins",
       flinkDistJar = FlinkUtils.getFlinkDistJar(flinkHome),
-      appJars = workspace.APP_JARS,
-      appPlugins = workspace.APP_PLUGINS)
+      appJars = workspace.APP_JARS)
   }
 }
 

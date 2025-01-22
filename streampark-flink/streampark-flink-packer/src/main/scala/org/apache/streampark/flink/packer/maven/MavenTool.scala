@@ -17,10 +17,11 @@
 
 package org.apache.streampark.flink.packer.maven
 
-import org.apache.streampark.common.Constant
 import org.apache.streampark.common.conf.{InternalConfigHolder, Workspace}
 import org.apache.streampark.common.conf.CommonConfig.{MAVEN_AUTH_PASSWORD, MAVEN_AUTH_USER, MAVEN_REMOTE_URL}
+import org.apache.streampark.common.constants.Constants
 import org.apache.streampark.common.util.{AssertUtils, Logger, Utils}
+import org.apache.streampark.common.util.Implicits._
 
 import com.google.common.collect.Lists
 import org.apache.maven.plugins.shade.{DefaultShader, ShadeRequest}
@@ -44,9 +45,7 @@ import javax.annotation.{Nonnull, Nullable}
 
 import java.io.File
 import java.util
-import java.util.{List => JavaList, Set => JavaSet}
 
-import scala.collection.convert.ImplicitConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
@@ -64,7 +63,7 @@ object MavenTool extends Logger {
     val builder =
       new RemoteRepository.Builder(
         "central",
-        Constant.DEFAULT,
+        Constants.DEFAULT,
         InternalConfigHolder.get(MAVEN_REMOTE_URL))
     val remoteRepository = {
       val buildState =
@@ -104,7 +103,7 @@ object MavenTool extends Logger {
     // check userJarPath
     val uberJar = new File(outFatJarPath)
     require(
-      outFatJarPath.endsWith(Constant.JAR_SUFFIX) && !uberJar.isDirectory,
+      outFatJarPath.endsWith(Constants.JAR_SUFFIX) && !uberJar.isDirectory,
       s"[StreamPark] streampark-packer: outFatJarPath($outFatJarPath) should be a JAR file.")
     uberJar.delete()
     // resolve all jarLibs

@@ -17,15 +17,20 @@
 
 package org.apache.streampark.console.core.service.impl;
 
+import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.exception.ApiAlertException;
+import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
 import org.apache.streampark.console.core.entity.FlinkEnv;
 import org.apache.streampark.console.core.enums.FlinkEnvCheckEnum;
 import org.apache.streampark.console.core.mapper.FlinkEnvMapper;
 import org.apache.streampark.console.core.service.FlinkClusterService;
 import org.apache.streampark.console.core.service.FlinkEnvService;
-import org.apache.streampark.console.core.service.application.ApplicationInfoService;
+import org.apache.streampark.console.core.service.application.FlinkApplicationInfoService;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.apache.commons.lang3.StringUtils;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +51,7 @@ public class FlinkEnvServiceImpl extends ServiceImpl<FlinkEnvMapper, FlinkEnv>
     @Autowired
     private FlinkClusterService flinkClusterService;
     @Autowired
-    private ApplicationInfoService applicationInfoService;
+    private FlinkApplicationInfoService applicationInfoService;
 
     /**
      * two places will be checked: <br>
@@ -56,12 +61,10 @@ public class FlinkEnvServiceImpl extends ServiceImpl<FlinkEnvMapper, FlinkEnv>
     @Override
     public FlinkEnvCheckEnum check(FlinkEnv version) {
         // 1) check name
-        LambdaQueryWrapper<FlinkEnv> queryWrapper = new LambdaQueryWrapper<FlinkEnv>().eq(FlinkEnv::getFlinkName,
-            version.getFlinkName());
-        if (version.getId() != null) {
-            queryWrapper.ne(FlinkEnv::getId, version.getId());
-        }
-        if (this.count(queryWrapper) > 0) {
+        boolean exists = this.lambdaQuery().eq(FlinkEnv::getFlinkName,
+            version.getFlinkName())
+            .ne(version.getId() != null, FlinkEnv::getId, version.getId()).exists();
+        if (exists) {
             return FlinkEnvCheckEnum.NAME_REPEATED;
         }
 
@@ -133,12 +136,14 @@ public class FlinkEnvServiceImpl extends ServiceImpl<FlinkEnvMapper, FlinkEnv>
 
     @Override
     public FlinkEnv getDefault() {
-        return this.baseMapper.selectOne(
-            new LambdaQueryWrapper<FlinkEnv>().eq(FlinkEnv::getIsDefault, true));
+        return this.lambdaQuery().eq(FlinkEnv::getIsDefault, true).one();
     }
 
     @Override
     public FlinkEnv getByIdOrDefault(Long id) {
+        if (id == null) {
+            return getDefault();
+        }
         FlinkEnv flinkEnv = getById(id);
         return flinkEnv == null ? getDefault() : flinkEnv;
     }
@@ -154,6 +159,13 @@ public class FlinkEnvServiceImpl extends ServiceImpl<FlinkEnvMapper, FlinkEnv>
     public void validity(Long id) {
         FlinkEnv flinkEnv = getById(id);
         checkOrElseAlert(flinkEnv);
+    }
+    @Override
+    public IPage<FlinkEnv> findPage(FlinkEnv flinkEnv, RestRequest restRequest) {
+        Page<FlinkEnv> page = MybatisPager.getPage(restRequest);
+        return this.lambdaQuery()
+            .like(StringUtils.isNotBlank(flinkEnv.getFlinkName()), FlinkEnv::getFlinkName, flinkEnv.getFlinkName())
+            .page(page);
     }
 
     private void checkOrElseAlert(FlinkEnv flinkEnv) {

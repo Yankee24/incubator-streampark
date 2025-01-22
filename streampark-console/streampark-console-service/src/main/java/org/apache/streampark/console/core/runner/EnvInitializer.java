@@ -26,9 +26,11 @@ import org.apache.streampark.common.enums.StorageType;
 import org.apache.streampark.common.fs.FsOperator;
 import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.common.util.SystemPropertyUtils;
+import org.apache.streampark.console.base.util.SpringContextUtils;
 import org.apache.streampark.console.base.util.WebUtils;
 import org.apache.streampark.console.core.entity.FlinkEnv;
 import org.apache.streampark.console.core.entity.SparkEnv;
+import org.apache.streampark.console.core.service.RegistryService;
 import org.apache.streampark.console.core.service.SettingService;
 
 import org.apache.commons.lang3.StringUtils;
@@ -81,6 +83,9 @@ public class EnvInitializer implements ApplicationRunner {
         // init InternalConfig
         initConfig();
 
+        // init RegistryService
+        initRegistryService();
+
         boolean isTest = Arrays.asList(context.getEnvironment().getActiveProfiles()).contains("test");
         if (!isTest) {
             // initialize local file system resources
@@ -89,8 +94,8 @@ public class EnvInitializer implements ApplicationRunner {
     }
 
     private void initConfig() {
-
         Environment env = context.getEnvironment();
+        InternalConfigHolder.initConfigHub();
         // override config from spring application.yaml
         InternalConfigHolder.keys().stream()
             .filter(env::containsProperty)
@@ -108,6 +113,17 @@ public class EnvInitializer implements ApplicationRunner {
         // overwrite system variable HADOOP_USER_NAME
         String hadoopUserName = InternalConfigHolder.get(CommonConfig.STREAMPARK_HADOOP_USER_NAME());
         overrideSystemProp(ConfigKeys.KEY_HADOOP_USER_NAME(), hadoopUserName);
+    }
+
+    private void initRegistryService() {
+        if (WebUtils.isHaEnable()) {
+            RegistryService registryService = SpringContextUtils.getBean(RegistryService.class);
+            registryService.registry();
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                registryService.unRegister();
+                log.info("RegistryService unRegister success");
+            }));
+        }
     }
 
     private void overrideSystemProp(String key, String defaultValue) {
@@ -128,13 +144,12 @@ public class EnvInitializer implements ApplicationRunner {
         // 1. prepare workspace dir
         prepareWorkspace(storageType, fsOperator, workspace);
         // 2. upload jar.
+
         // 2.1) upload client jar
         uploadClientJar(workspace, fsOperator);
-        // 2.2) upload plugin jar.
-        uploadPluginJar(workspace, fsOperator);
-        // 2.3) upload shims jar
+        // 2.2) upload shims jar
         uploadShimsJar(workspace, fsOperator);
-        // 2.4) create maven local repository dir
+        // 2.3) create maven local repository dir
         createMvnLocalRepoDir();
 
         initialized.add(storageType);
@@ -194,17 +209,6 @@ public class EnvInitializer implements ApplicationRunner {
                 log.info("load shims:{} to {}", file.getName(), shimsPath);
                 fsOperator.upload(file.getAbsolutePath(), shimsPath);
             }
-        }
-    }
-
-    private void uploadPluginJar(Workspace workspace, FsOperator fsOperator) {
-        String appPlugins = workspace.APP_PLUGINS();
-        fsOperator.mkCleanDirs(appPlugins);
-
-        File plugins = WebUtils.getAppPluginsDir();
-        for (File file : plugins.listFiles(fileFilter)) {
-            log.info("load plugin:{} to {}", file.getName(), appPlugins);
-            fsOperator.upload(file.getAbsolutePath(), appPlugins);
         }
     }
 

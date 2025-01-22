@@ -21,6 +21,7 @@ import org.apache.streampark.common.conf.ConfigKeys._
 import org.apache.streampark.common.enums.{ApiType, PlannerType}
 import org.apache.streampark.common.enums.ApiType.ApiType
 import org.apache.streampark.common.util.{DeflaterUtils, PropertiesUtils}
+import org.apache.streampark.common.util.Implicits._
 import org.apache.streampark.flink.core.EnhancerImplicit._
 import org.apache.streampark.flink.core.conf.FlinkConfiguration
 
@@ -33,7 +34,6 @@ import org.apache.flink.table.api.bridge.scala.StreamTableEnvironment
 import java.io.File
 
 import scala.collection.{mutable, Map}
-import scala.collection.convert.ImplicitConversions._
 import scala.util.{Failure, Success, Try}
 
 private[flink] object FlinkTableInitializer {
@@ -118,6 +118,12 @@ private[flink] class FlinkTableInitializer(args: Array[String], apiType: ApiType
         }
     }
 
+    parameter.get(KEY_FLINK_CONF(), null) match {
+      case null | "" =>
+        throw new ExceptionInInitializerError(
+          "[StreamPark] Usage:can't find config,please set \"--flink.conf $conf \" in main arguments")
+      case conf => builder.withConfiguration(Configuration.fromMap(PropertiesUtils.fromYamlText(DeflaterUtils.unzipString(conf))))
+    }
     val buildWith =
       (parameter.get(KEY_FLINK_TABLE_CATALOG), parameter.get(KEY_FLINK_TABLE_DATABASE))
     buildWith match {

@@ -25,7 +25,8 @@
   import { onMounted, reactive, ref, nextTick, unref } from 'vue';
   import { AppListRecord } from '/@/api/flink/app.type';
   import configOptions from './data/option';
-  import { fetchMain, fetchUpload, fetchUpdate, fetchGet } from '/@/api/flink/app';
+  import { fetchUpdate, fetchGet } from '/@/api/flink/app';
+  import { fetchUpload } from '/@/api/resource/upload';
   import { useRoute } from 'vue-router';
   import { getAppConfType, handleSubmitParams, handleTeamResource } from './utils';
   import { fetchFlinkHistory } from '/@/api/flink/flinkSql';
@@ -48,7 +49,7 @@
   import { useGo } from '/@/hooks/web/usePage';
   import ProgramArgs from './components/ProgramArgs.vue';
   import VariableReview from './components/VariableReview.vue';
-  import { ExecModeEnum, JobTypeEnum, UseStrategyEnum } from '/@/enums/flinkEnum';
+  import { DeployMode, JobTypeEnum, UseStrategyEnum } from '/@/enums/flinkEnum';
 
   const route = useRoute();
   const go = useGo();
@@ -95,7 +96,7 @@
   const [registerReviewDrawer, { openDrawer: openReviewDrawer }] = useDrawer();
 
   /* Form reset */
-  function handleReset(executionMode?: string) {
+  function handleReset(deployMode?: string) {
     let selectAlertId = '';
     if (app.alertId) {
       selectAlertId = unref(alerts).filter((t) => t.id == app.alertId)[0]?.id;
@@ -124,21 +125,21 @@
         k8sNamespace: app.k8sNamespace,
         ...resetParams,
       };
-      switch (app.executionMode) {
-        case ExecModeEnum.REMOTE:
+      switch (app.deployMode) {
+        case DeployMode.STANDALONE:
           defaultParams['remoteClusterId'] = app.flinkClusterId;
           break;
-        case ExecModeEnum.YARN_SESSION:
+        case DeployMode.YARN_SESSION:
           defaultParams['yarnSessionClusterId'] = app.flinkClusterId;
           break;
-        case ExecModeEnum.KUBERNETES_SESSION:
+        case DeployMode.KUBERNETES_SESSION:
           defaultParams['k8sSessionClusterId'] = app.flinkClusterId;
           break;
         default:
           break;
       }
-      if (!executionMode) {
-        Object.assign(defaultParams, { executionMode: app.executionMode });
+      if (!deployMode) {
+        Object.assign(defaultParams, { deployMode: app.deployMode });
       }
       setFieldsValue(defaultParams);
       app.args && programArgRef.value?.setContent(app.args);
@@ -149,11 +150,10 @@
     const formData = new FormData();
     formData.append('file', data.file);
     try {
-      const path = await fetchUpload(formData);
+      const resp = await fetchUpload(formData);
       uploadJar.value = data.file.name;
-      const res = await fetchMain({ jar: path });
       uploadLoading.value = false;
-      setFieldsValue({ jar: uploadJar.value, mainClass: res });
+      setFieldsValue({ jar: uploadJar.value, mainClass: resp.mainClass });
     } catch (error) {
       console.error(error);
       uploadLoading.value = false;
@@ -164,13 +164,21 @@
   async function handleAppUpdate(values) {
     try {
       submitLoading.value = true;
-      if (app.jobType == JobTypeEnum.SQL) {
+      if (app.jobType == JobTypeEnum.SQL || app.jobType == JobTypeEnum.CDC) {
         if (values.flinkSql == null || values.flinkSql.trim() === '') {
-          createMessage.warning(t('flink.app.editStreamPark.flinkSqlRequired'));
+          const errorMsg =
+            app.jobType == JobTypeEnum.SQL
+              ? t('flink.app.editStreamPark.flinkSqlRequired')
+              : t('flink.app.editStreamPark.yamlRequired');
+          createMessage.warning(errorMsg);
         } else {
           const access = await flinkSql?.value?.handleVerifySql();
           if (!access) {
-            createMessage.warning(t('flink.app.editStreamPark.sqlCheck'));
+            const errorMsg =
+              app.jobType == JobTypeEnum.SQL
+                ? t('flink.app.editStreamPark.sqlCheck')
+                : t('flink.app.editStreamPark.yamlCheck');
+            createMessage.warning(errorMsg);
             throw new Error(access);
           }
           handleSubmitSQL(values);
@@ -283,7 +291,7 @@
     Object.assign(app, res);
     Object.assign(defaultOptions, JSON.parse(app.options || '{}'));
 
-    if (app.jobType == JobTypeEnum.SQL) {
+    if (app.jobType == JobTypeEnum.SQL || app.jobType == JobTypeEnum.CDC) {
       fetchFlinkHistory({ id: appId }).then((res) => {
         flinkSqlHistory.value = res;
       });
@@ -304,7 +312,7 @@
     setFieldsValue({
       jobType: res.jobType,
       appType: res.appType,
-      executionMode: res.executionMode,
+      deployMode: res.deployMode,
       flinkSql: res.flinkSql ? decodeByBase64(res.flinkSql) : '',
       dependency: '',
       module: res.module,
@@ -368,7 +376,7 @@
       <template #args="{ model }">
         <ProgramArgs
           ref="programArgRef"
-          v-if="model.args != null && model.args != undefined"
+          v-if="model.args != null"
           v-model:value="model.args"
           :suggestions="suggestions"
           @preview="(value) => openReviewDrawer(true, { value, suggestions })"
@@ -383,6 +391,7 @@
           v-model:value="model[field]"
           :versionId="model['versionId']"
           :suggestions="suggestions"
+          :jobType="Number(model['jobType'])"
           @preview="(value) => openReviewDrawer(true, { value, suggestions })"
         />
       </template>

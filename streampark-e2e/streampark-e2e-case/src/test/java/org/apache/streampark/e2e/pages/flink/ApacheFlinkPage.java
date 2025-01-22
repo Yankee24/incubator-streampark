@@ -17,9 +17,11 @@
 
 package org.apache.streampark.e2e.pages.flink;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 import org.apache.streampark.e2e.pages.common.NavBarPage.NavBarItem;
 import org.apache.streampark.e2e.pages.flink.applications.ApplicationsPage;
+import org.apache.streampark.e2e.pages.flink.clusters.FlinkClustersPage;
 
 import lombok.Getter;
 import org.openqa.selenium.WebElement;
@@ -28,19 +30,17 @@ import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
-
 @Getter
 public final class ApacheFlinkPage extends NavBarPage implements NavBarItem {
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Applications')]//..")
-    private WebElement menuApplications;
+    @FindBy(className = "menu-item-flink_app")
+    public WebElement menuApplications;
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Flink Home')]//..")
-    private WebElement menuFlinkHome;
+    @FindBy(className = "menu-item-flink_home")
+    public WebElement menuFlinkHome;
 
-    @FindBy(xpath = "//span[contains(@class, 'streampark-simple-menu-sub-title') and contains(text(), 'Clusters')]//..")
-    private WebElement menuClusters;
+    @FindBy(className = "menu-item-flink_cluster")
+    public WebElement menuClusters;
 
     public ApacheFlinkPage(RemoteWebDriver driver) {
         super(driver);
@@ -48,17 +48,24 @@ public final class ApacheFlinkPage extends NavBarPage implements NavBarItem {
 
     public <T extends ApacheFlinkPage.Tab> T goToTab(Class<T> tab) {
         if (tab == ApplicationsPage.class) {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
                 .until(ExpectedConditions.elementToBeClickable(menuApplications));
             menuApplications.click();
             return tab.cast(new ApplicationsPage(driver));
         }
 
         if (tab == FlinkHomePage.class) {
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
                 .until(ExpectedConditions.elementToBeClickable(menuFlinkHome));
             menuFlinkHome.click();
             return tab.cast(new FlinkHomePage(driver));
+        }
+
+        if (tab == FlinkClustersPage.class) {
+            new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
+                .until(ExpectedConditions.elementToBeClickable(menuClusters));
+            menuClusters.click();
+            return tab.cast(new FlinkClustersPage(driver));
         }
 
         throw new UnsupportedOperationException("Unknown tab: " + tab.getName());

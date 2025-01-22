@@ -17,6 +17,7 @@
 
 package org.apache.streampark.e2e.pages.flink.applications;
 
+import org.apache.streampark.e2e.pages.common.Constants;
 import org.apache.streampark.e2e.pages.common.NavBarPage;
 import org.apache.streampark.e2e.pages.flink.ApacheFlinkPage;
 
@@ -30,26 +31,25 @@ import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.time.Duration;
 import java.util.List;
 
 @Getter
 public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab {
 
-    @FindBy(xpath = "//div[contains(@class, 'app_list')]//button[contains(@class, 'ant-btn-primary')]/span[contains(text(), 'Add New')]")
-    private WebElement buttonCreateApplication;
+    @FindBy(id = "e2e-flinkapp-create-btn")
+    public WebElement buttonCreateApplication;
 
-    @FindBy(xpath = "//tbody[contains(@class, 'ant-table-tbody')]")
-    private List<WebElement> applicationsList;
+    @FindBy(className = "ant-table-tbody")
+    public List<WebElement> applicationsList;
 
     @FindBy(className = "ant-form-item-explain-error")
-    private List<WebElement> errorMessageList;
+    public List<WebElement> errorMessageList;
 
-    @FindBy(xpath = "//div[contains(@class, 'ant-dropdown-content')]//span[contains(text(), 'Delete')]")
-    private WebElement deleteButton;
+    @FindBy(className = "e2e-flinkapp-delete-btn")
+    public WebElement deleteButton;
 
-    @FindBy(xpath = "//button[contains(@class, 'ant-btn')]/span[contains(., 'OK')]")
-    private WebElement deleteConfirmButton;
+    @FindBy(className = "e2e-flinkapp-delete-confirm")
+    public WebElement deleteConfirmButton;
 
     public ApplicationsPage(RemoteWebDriver driver) {
         super(driver);
@@ -58,8 +58,11 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
     public ApplicationForm createApplication() {
         waitForPageLoading();
 
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
+            .until(ExpectedConditions.elementToBeClickable(buttonCreateApplication));
+
         buttonCreateApplication.click();
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.urlContains("/flink/app/add"));
         return new ApplicationForm(driver);
     }
@@ -67,17 +70,22 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
     public ApplicationsPage deleteApplication(String applicationName) {
         waitForPageLoading();
 
-        WebElement extraButton = applicationsList().stream()
+        WebElement extraButton = applicationsList.stream()
             .filter(it -> it.getText().contains(applicationName))
             .flatMap(
-                it -> it.findElements(By.xpath("//span[contains(@aria-label, 'more')]/.."))
+                it -> it.findElements(By.className("anticon-more"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No extra button in applications list"));
         Actions actions = new Actions(this.driver);
         actions.moveToElement(extraButton).perform();
+
         deleteButton.click();
+
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
+            .until(ExpectedConditions.elementToBeClickable(deleteConfirmButton));
+
         deleteConfirmButton.click();
 
         return this;
@@ -86,9 +94,9 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
     public ApplicationsPage startApplication(String applicationName) {
         waitForPageLoading();
 
-        applicationsList().stream()
+        applicationsList.stream()
             .filter(it -> it.getText().contains(applicationName))
-            .flatMap(it -> it.findElements(By.xpath("//button[contains(@auth, 'app:start')]")).stream())
+            .flatMap(it -> it.findElements(By.className("e2e-flinkapp-startup-btn")).stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
             .orElseThrow(() -> new RuntimeException("No start button in applications list"))
@@ -96,37 +104,23 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
 
         StartJobForm startJobForm = new StartJobForm();
         String startJobFormMessage = "Start Job";
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.xpath(String.format("//*[contains(.,'%s')]",
                         startJobFormMessage))));
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.elementToBeClickable(startJobForm.radioFromSavepoint()));
-        startJobForm.radioFromSavepoint().click();
-        startJobForm.buttonSubmit().click();
-        String startPopUpMessage = "The current job is starting";
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(
-                ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath(String.format("//*[contains(text(),'%s')]",
-                        startPopUpMessage))));
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(
-                ExpectedConditions.invisibilityOfElementLocated(
-                    By.xpath(String.format("//*[contains(text(),'%s')]",
-                        startPopUpMessage))));
 
+        startJobForm.buttonSubmit.click();
         return this;
     }
 
     public ApplicationsPage releaseApplication(String applicationName) {
         waitForPageLoading();
 
-        applicationsList().stream()
+        applicationsList.stream()
             .filter(it -> it.getText().contains(applicationName))
             .flatMap(
-                it -> it.findElements(By.xpath("//button[contains(@auth, 'app:release')]"))
+                it -> it.findElements(By.className("e2e-flinkapp-release-btn"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
@@ -139,10 +133,10 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
     public ApplicationsPage cancelApplication(String applicationName) {
         waitForPageLoading();
 
-        applicationsList().stream()
+        applicationsList.stream()
             .filter(it -> it.getText().contains(applicationName))
             .flatMap(
-                it -> it.findElements(By.xpath("//button[contains(@auth, 'app:cancel')]"))
+                it -> it.findElements(By.className("e2e-flinkapp-cancel-btn"))
                     .stream())
             .filter(WebElement::isDisplayed)
             .findFirst()
@@ -151,32 +145,19 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
 
         CancelJobForm cancelJobForm = new CancelJobForm();
         String cancelJobFormMessage = "Stop Job";
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(
                 ExpectedConditions.visibilityOfElementLocated(
                     By.xpath(String.format("//*[contains(.,'%s')]",
                         cancelJobFormMessage))));
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(ExpectedConditions.elementToBeClickable(cancelJobForm.radioFromSavepoint()));
-        cancelJobForm.radioFromSavepoint().click();
-        cancelJobForm.buttonSubmit().click();
-        String cancelPopUpMessage = "The current job is canceling";
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(
-                ExpectedConditions.visibilityOfElementLocated(
-                    By.xpath(String.format("//*[contains(text(),'%s')]",
-                        cancelPopUpMessage))));
-        new WebDriverWait(driver, Duration.ofSeconds(10))
-            .until(
-                ExpectedConditions.invisibilityOfElementLocated(
-                    By.xpath(String.format("//*[contains(text(),'%s')]",
-                        cancelPopUpMessage))));
+
+        cancelJobForm.buttonSubmit.click();
 
         return this;
     }
 
     private void waitForPageLoading() {
-        new WebDriverWait(driver, Duration.ofSeconds(10))
+        new WebDriverWait(driver, Constants.DEFAULT_WEBDRIVER_WAIT_DURATION)
             .until(ExpectedConditions.urlContains("/flink/app"));
     }
 
@@ -187,14 +168,8 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
             PageFactory.initElements(driver, this);
         }
 
-        @FindBy(xpath = "//button[@id='startApplicationModal_startSavePointed']//span[contains(text(), 'ON')]")
-        private WebElement radioFromSavepoint;
-
-        @FindBy(xpath = "//div[contains(.,'Start Job')]//button[contains(@class, 'ant-btn')]//span[contains(., 'Apply')]")
-        private WebElement buttonSubmit;
-
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(., 'Cancel')]")
-        private WebElement buttonCancel;
+        @FindBy(id = "e2e-flinkapp-start-submit")
+        public WebElement buttonSubmit;
     }
 
     @Getter
@@ -204,13 +179,10 @@ public class ApplicationsPage extends NavBarPage implements ApacheFlinkPage.Tab 
             PageFactory.initElements(driver, this);
         }
 
-        @FindBy(xpath = "//span[contains(text(), 'ON')]")
-        private WebElement radioFromSavepoint;
+        @FindBy(id = "e2e-flinkapp-stop-submit")
+        public WebElement buttonSubmit;
 
-        @FindBy(xpath = "//div[contains(.,'Stop Job')]//button[contains(@class, 'ant-btn')]//span[contains(., 'Apply')]")
-        private WebElement buttonSubmit;
-
-        @FindBy(xpath = "//button[contains(@class, 'ant-btn')]//span[contains(., 'Cancel')]")
-        private WebElement buttonCancel;
+        @FindBy(id = "e2e-flinkapp-stop-cancel")
+        public WebElement buttonCancel;
     }
 }

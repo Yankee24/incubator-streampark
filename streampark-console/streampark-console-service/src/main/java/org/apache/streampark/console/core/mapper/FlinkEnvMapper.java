@@ -28,4 +28,5 @@ public interface FlinkEnvMapper extends BaseMapper<FlinkEnv> {
     FlinkEnv selectByAppId(@Param("appId") Long appId);
 
     void setDefault(@Param("id") Long id);
+
 }

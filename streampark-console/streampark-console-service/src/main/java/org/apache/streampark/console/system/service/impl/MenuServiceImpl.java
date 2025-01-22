@@ -30,7 +30,6 @@ import org.apache.streampark.console.system.service.UserService;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,9 +77,8 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
                     String.format("The userId:[%s] not found", userId)));
         // Admin has the permission for all menus.
         if (UserTypeEnum.ADMIN == user.getUserType()) {
-            LambdaQueryWrapper<Menu> queryWrapper = new LambdaQueryWrapper<Menu>().eq(Menu::getType, "0")
-                .orderByAsc(Menu::getOrderNum);
-            return this.list(queryWrapper);
+            return this.lambdaQuery().eq(Menu::getType, "0")
+                .orderByAsc(Menu::getOrderNum).list();
         }
         return this.baseMapper.selectMenus(userId, teamId);
     }
@@ -89,17 +87,9 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
     public Map<String, Object> listMenuMap(Menu menu) {
         Map<String, Object> result = new HashMap<>(16);
         try {
-            LambdaQueryWrapper<Menu> queryWrapper = new LambdaQueryWrapper<>();
-            if (StringUtils.isNotBlank(menu.getMenuName())) {
-                queryWrapper.eq(Menu::getMenuName, menu.getMenuName());
-            }
-            if (StringUtils.isNotBlank(menu.getCreateTimeFrom())
-                && StringUtils.isNotBlank(menu.getCreateTimeTo())) {
-                queryWrapper
-                    .ge(Menu::getCreateTime, menu.getCreateTimeFrom())
-                    .le(Menu::getCreateTime, menu.getCreateTimeTo());
-            }
-            List<Menu> menus = baseMapper.selectList(queryWrapper);
+            List<Menu> menus = this.lambdaQuery()
+                .eq(StringUtils.isNotBlank(menu.getMenuName()), Menu::getMenuName, menu.getMenuName())
+                .list();
 
             List<RouterTree<Menu>> trees = new ArrayList<>();
             List<String> ids = new ArrayList<>();
@@ -107,7 +97,7 @@ public class MenuServiceImpl extends ServiceImpl<MenuMapper, Menu> implements Me
             menus.forEach(
                 m -> {
                     ids.add(m.getMenuId().toString());
-                    trees.add(new RouterTree(m));
+                    trees.add(new RouterTree<>(m));
                 });
             result.put(IDS, ids);
             result.put(TOTAL, menus.size());

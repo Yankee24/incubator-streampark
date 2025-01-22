@@ -17,14 +17,13 @@
 
 package org.apache.streampark.flink.packer.pipeline.impl
 
-import org.apache.streampark.common.enums.FlinkDevelopmentMode
+import org.apache.streampark.common.enums.FlinkJobType
 import org.apache.streampark.common.fs.{FsOperator, LfsOperator}
+import org.apache.streampark.common.util.Implicits._
 import org.apache.streampark.flink.packer.maven.MavenTool
 import org.apache.streampark.flink.packer.pipeline._
 
 import java.io.File
-
-import scala.collection.convert.ImplicitConversions._
 
 /** Building pipeline for flink standalone session mode */
 class FlinkRemoteBuildPipeline(request: FlinkRemotePerJobBuildRequest) extends BuildPipeline {
@@ -48,8 +47,8 @@ class FlinkRemoteBuildPipeline(request: FlinkRemotePerJobBuildRequest) extends B
       // build flink job shaded jar
       val shadedJar =
         execStep(2) {
-          request.developmentMode match {
-            case FlinkDevelopmentMode.FLINK_SQL =>
+          request.flinkJobType match {
+            case FlinkJobType.FLINK_SQL =>
               val output = MavenTool.buildFatJar(
                 request.mainClass,
                 request.providedLibs,
@@ -62,8 +61,8 @@ class FlinkRemoteBuildPipeline(request: FlinkRemotePerJobBuildRequest) extends B
 
       val mavenJars =
         execStep(3) {
-          request.developmentMode match {
-            case FlinkDevelopmentMode.PYFLINK =>
+          request.flinkJobType match {
+            case FlinkJobType.PYFLINK =>
               val mavenArts =
                 MavenTool.resolveArtifacts(request.dependencyInfo.mavenArts)
               mavenArts.map(_.getAbsolutePath) ++ request.dependencyInfo.extJarLibs
@@ -72,8 +71,8 @@ class FlinkRemoteBuildPipeline(request: FlinkRemotePerJobBuildRequest) extends B
         }.getOrElse(throw getError.exception)
 
       execStep(4) {
-        request.developmentMode match {
-          case FlinkDevelopmentMode.PYFLINK =>
+        request.flinkJobType match {
+          case FlinkJobType.PYFLINK =>
             mavenJars.foreach(jar => {
               val lfs: FsOperator = FsOperator.lfs
               val lib = request.workspace.concat("/lib")

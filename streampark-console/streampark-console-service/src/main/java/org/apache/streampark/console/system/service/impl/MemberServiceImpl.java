@@ -30,7 +30,6 @@ import org.apache.streampark.console.system.service.RoleService;
 import org.apache.streampark.console.system.service.TeamService;
 import org.apache.streampark.console.system.service.UserService;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -40,7 +39,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -60,19 +58,18 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
     @Override
     @Transactional
     public void removeByRoleIds(String[] roleIds) {
-        Arrays.stream(roleIds).forEach(id -> baseMapper.deleteByRoleId(Long.valueOf(id)));
+        this.lambdaUpdate().in(Member::getRoleId, Arrays.asList(roleIds)).remove();
     }
 
     @Override
     @Transactional
     public void removeByUserId(Long userId) {
-        baseMapper.deleteByUserId(userId);
+        this.lambdaUpdate().eq(Member::getUserId, userId).remove();
     }
 
     @Override
     public void removeByTeamId(Long teamId) {
-        LambdaQueryWrapper<Member> queryWrapper = new LambdaQueryWrapper<Member>().eq(Member::getTeamId, teamId);
-        this.remove(queryWrapper);
+        this.lambdaUpdate().eq(Member::getTeamId, teamId).remove();
     }
 
     @Override
@@ -103,16 +100,15 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
 
     private Member findByUserId(Long teamId, Long userId) {
         ApiAlertException.throwIfNull(teamId, "The team id is required.");
-        LambdaQueryWrapper<Member> queryWrapper = new LambdaQueryWrapper<Member>()
+        return this.lambdaQuery()
             .eq(Member::getTeamId, teamId)
-            .eq(Member::getUserId, userId);
-        return baseMapper.selectOne(queryWrapper);
+            .eq(Member::getUserId, userId)
+            .one();
     }
 
     @Override
     public List<Long> listUserIdsByRoleId(Long roleId) {
-        LambdaQueryWrapper<Member> queryWrapper = new LambdaQueryWrapper<Member>().eq(Member::getRoleId, roleId);
-        List<Member> memberList = baseMapper.selectList(queryWrapper);
+        List<Member> memberList = this.lambdaQuery().eq(Member::getRoleId, roleId).list();
         return memberList.stream().map(Member::getUserId).collect(Collectors.toList());
     }
 
@@ -134,9 +130,6 @@ public class MemberServiceImpl extends ServiceImpl<MemberMapper, Member> impleme
         member.setId(null);
         member.setUserId(user.getUserId());
 
-        Date date = new Date();
-        member.setCreateTime(date);
-        member.setModifyTime(date);
         this.save(member);
     }
 

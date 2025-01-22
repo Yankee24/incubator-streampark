@@ -18,14 +18,14 @@
 package org.apache.streampark.console.core.service.impl;
 
 import org.apache.streampark.common.util.AssertUtils;
-import org.apache.streampark.console.core.entity.Application;
+import org.apache.streampark.console.base.exception.ApiAlertException;
 import org.apache.streampark.console.core.entity.ExternalLink;
+import org.apache.streampark.console.core.entity.FlinkApplication;
 import org.apache.streampark.console.core.enums.PlaceholderTypeEnum;
 import org.apache.streampark.console.core.mapper.ExternalLinkMapper;
 import org.apache.streampark.console.core.service.ExternalLinkService;
-import org.apache.streampark.console.core.service.application.ApplicationManageService;
+import org.apache.streampark.console.core.service.application.FlinkApplicationManageService;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.PropertyPlaceholderHelper;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,26 +46,22 @@ public class ExternalLinkServiceImpl extends ServiceImpl<ExternalLinkMapper, Ext
     implements
         ExternalLinkService {
 
-    private final ApplicationManageService applicationManageService;
+    private final FlinkApplicationManageService applicationManageService;
 
     @Override
     public void create(ExternalLink externalLink) {
-        if (!this.check(externalLink)) {
+        if (this.check(externalLink)) {
             return;
         }
-        Date date = new Date();
-        externalLink.setCreateTime(date);
-        externalLink.setModifyTime(date);
         externalLink.setId(null);
         this.save(externalLink);
     }
 
     @Override
     public void update(ExternalLink externalLink) {
-        if (!this.check(externalLink)) {
+        if (this.check(externalLink)) {
             return;
         }
-        externalLink.setModifyTime(new Date());
         baseMapper.updateById(externalLink);
     }
 
@@ -77,7 +72,7 @@ public class ExternalLinkServiceImpl extends ServiceImpl<ExternalLinkMapper, Ext
 
     @Override
     public List<ExternalLink> render(Long appId) {
-        Application app = applicationManageService.getById(appId);
+        FlinkApplication app = applicationManageService.getById(appId);
         AssertUtils.notNull(app, "Application doesn't exist");
         List<ExternalLink> externalLink = this.list();
         if (externalLink != null && externalLink.size() > 0) {
@@ -87,8 +82,9 @@ public class ExternalLinkServiceImpl extends ServiceImpl<ExternalLinkMapper, Ext
         return externalLink;
     }
 
-    private void renderLinkUrl(ExternalLink link, Application app) {
+    private void renderLinkUrl(ExternalLink link, FlinkApplication app) {
         Map<String, String> placeholderValueMap = new HashMap<>();
+        placeholderValueMap.put(PlaceholderTypeEnum.ID.get(), String.valueOf(app.getId()));
         placeholderValueMap.put(PlaceholderTypeEnum.JOB_ID.get(), app.getJobId());
         placeholderValueMap.put(PlaceholderTypeEnum.JOB_NAME.get(), app.getJobName());
         placeholderValueMap.put(PlaceholderTypeEnum.YARN_ID.get(), app.getClusterId());
@@ -99,25 +95,21 @@ public class ExternalLinkServiceImpl extends ServiceImpl<ExternalLinkMapper, Ext
     }
 
     private boolean check(ExternalLink params) {
-        LambdaQueryWrapper<ExternalLink> queryWrapper = new LambdaQueryWrapper<ExternalLink>();
         // badgeName and LinkUrl cannot be duplicated
-        queryWrapper.nested(
+        ExternalLink result = this.lambdaQuery().nested(
             qw -> qw.eq(ExternalLink::getBadgeName, params.getBadgeName())
                 .or()
-                .eq(ExternalLink::getLinkUrl, params.getLinkUrl()));
-        if (params.getId() != null) {
-            queryWrapper.and(qw -> qw.ne(ExternalLink::getId, params.getId()));
-        }
-        ExternalLink result = this.getOne(queryWrapper);
+                .eq(ExternalLink::getLinkUrl, params.getLinkUrl()))
+            .and(params.getId() != null, qw -> qw.ne(ExternalLink::getId, params.getId())).one();
+
         if (result == null) {
-            return true;
+            return false;
         }
-        AssertUtils.required(
-            !result.getBadgeName().equals(params.getBadgeName()),
+        ApiAlertException.throwIfTrue(result.getBadgeName().equals(params.getBadgeName()),
             String.format("The name: %s is already existing.", result.getBadgeName()));
-        AssertUtils.required(
-            !result.getLinkUrl().equals(params.getLinkUrl()),
+        ApiAlertException.throwIfTrue(result.getLinkUrl().equals(params.getLinkUrl()),
             String.format("The linkUrl: %s is already existing.", result.getLinkUrl()));
-        return false;
+
+        return true;
     }
 }

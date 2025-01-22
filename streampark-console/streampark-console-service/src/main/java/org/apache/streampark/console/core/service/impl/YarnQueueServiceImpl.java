@@ -17,25 +17,24 @@
 
 package org.apache.streampark.console.core.service.impl;
 
-import org.apache.streampark.common.enums.FlinkExecutionMode;
-import org.apache.streampark.common.enums.SparkExecutionMode;
+import org.apache.streampark.common.enums.FlinkDeployMode;
+import org.apache.streampark.common.enums.SparkDeployMode;
 import org.apache.streampark.common.util.AssertUtils;
 import org.apache.streampark.console.base.domain.RestRequest;
 import org.apache.streampark.console.base.exception.ApiAlertException;
 import org.apache.streampark.console.base.mybatis.pager.MybatisPager;
 import org.apache.streampark.console.core.bean.ResponseResult;
-import org.apache.streampark.console.core.entity.Application;
+import org.apache.streampark.console.core.entity.FlinkApplication;
 import org.apache.streampark.console.core.entity.FlinkCluster;
 import org.apache.streampark.console.core.entity.YarnQueue;
 import org.apache.streampark.console.core.mapper.YarnQueueMapper;
 import org.apache.streampark.console.core.service.FlinkClusterService;
 import org.apache.streampark.console.core.service.YarnQueueService;
-import org.apache.streampark.console.core.service.application.ApplicationManageService;
+import org.apache.streampark.console.core.service.application.FlinkApplicationManageService;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -52,8 +51,8 @@ import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.apache.streampark.console.core.utils.YarnQueueLabelExpression.ERR_FORMAT_HINTS;
-import static org.apache.streampark.console.core.utils.YarnQueueLabelExpression.isValid;
+import static org.apache.streampark.console.core.util.YarnQueueLabelExpression.ERR_FORMAT_HINTS;
+import static org.apache.streampark.console.core.util.YarnQueueLabelExpression.isValid;
 
 @Slf4j
 @Service
@@ -70,7 +69,7 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
     public static final String QUEUE_AVAILABLE_HINT = "The queue label is available.";
 
     @Autowired
-    private ApplicationManageService applicationManageService;
+    private FlinkApplicationManageService applicationManageService;
     @Autowired
     private FlinkClusterService flinkClusterService;
 
@@ -79,8 +78,12 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
         AssertUtils.notNull(yarnQueue, "Yarn queue query params mustn't be null.");
         AssertUtils.notNull(
             yarnQueue.getTeamId(), "Team id of yarn queue query params mustn't be null.");
+
         Page<YarnQueue> page = MybatisPager.getPage(request);
-        return this.baseMapper.selectPage(page, yarnQueue);
+        return this.lambdaQuery().eq(yarnQueue.getTeamId() != null, YarnQueue::getTeamId, yarnQueue.getTeamId())
+            .like(StringUtils.isNotBlank(yarnQueue.getQueueLabel()), YarnQueue::getQueueLabel,
+                yarnQueue.getQueueLabel())
+            .page(page);
     }
 
     /**
@@ -109,7 +112,10 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
             return responseResult;
         }
 
-        boolean existed = this.baseMapper.existsByQueueLabel(yarnQueue);
+        boolean existed = this.lambdaQuery().eq(YarnQueue::getTeamId, yarnQueue.getTeamId())
+            .eq(YarnQueue::getQueueLabel, yarnQueue.getQueueLabel())
+            .ne(yarnQueue.getId() != null, YarnQueue::getId, yarnQueue.getId())
+            .exists();
 
         if (existed) {
             responseResult.setStatus(1);
@@ -175,19 +181,19 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
      * Only check the validation of queue-labelExpression when using yarn application or yarn-session
      * mode or yarn-perjob mode.
      *
-     * @param executionModeEnum execution mode.
+     * @param deployModeEnum execution mode.
      * @param queueLabel queueLabel expression.
      */
     @Override
-    public void checkQueueLabel(FlinkExecutionMode executionModeEnum, String queueLabel) {
-        if (FlinkExecutionMode.isYarnMode(executionModeEnum)) {
+    public void checkQueueLabel(FlinkDeployMode deployModeEnum, String queueLabel) {
+        if (FlinkDeployMode.isYarnMode(deployModeEnum)) {
             ApiAlertException.throwIfFalse(isValid(queueLabel, true), ERR_FORMAT_HINTS);
         }
     }
 
     @Override
-    public void checkQueueLabel(SparkExecutionMode executionModeEnum, String queueLabel) {
-        if (SparkExecutionMode.isYarnMode(executionModeEnum)) {
+    public void checkQueueLabel(SparkDeployMode deployModeEnum, String queueLabel) {
+        if (SparkDeployMode.isYarnMode(deployModeEnum)) {
             ApiAlertException.throwIfFalse(isValid(queueLabel, true), ERR_FORMAT_HINTS);
         }
     }
@@ -199,17 +205,14 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
 
     @Override
     public boolean existByQueueLabel(String queueLabel) {
-        return getBaseMapper()
-            .exists(new LambdaQueryWrapper<YarnQueue>().eq(YarnQueue::getQueueLabel, queueLabel));
+        return this.lambdaQuery().eq(YarnQueue::getQueueLabel, queueLabel).exists();
     }
 
     @Override
     public boolean existByTeamIdQueueLabel(Long teamId, String queueLabel) {
-        return getBaseMapper()
-            .exists(
-                new LambdaQueryWrapper<YarnQueue>()
-                    .eq(YarnQueue::getTeamId, teamId)
-                    .eq(YarnQueue::getQueueLabel, queueLabel));
+        return this.lambdaQuery().eq(YarnQueue::getTeamId, teamId)
+            .eq(YarnQueue::getQueueLabel, queueLabel)
+            .exists();
     }
 
     // --------- private methods------------
@@ -227,7 +230,7 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
     public void checkNotReferencedByFlinkClusters(
                                                   @Nonnull String queueLabel, @Nonnull String operation) {
         List<FlinkCluster> clustersReferenceYarnQueueLabel = flinkClusterService
-            .listByExecutionModes(Sets.newHashSet(FlinkExecutionMode.YARN_SESSION))
+            .listByDeployModes(Sets.newHashSet(FlinkDeployMode.YARN_SESSION))
             .stream()
             .filter(flinkCluster -> StringUtils.equals(flinkCluster.getYarnQueue(), queueLabel))
             .collect(Collectors.toList());
@@ -240,12 +243,12 @@ public class YarnQueueServiceImpl extends ServiceImpl<YarnQueueMapper, YarnQueue
     public void checkNotReferencedByApplications(
                                                  @Nonnull Long teamId, @Nonnull String queueLabel,
                                                  @Nonnull String operation) {
-        List<Application> appsReferenceQueueLabel = applicationManageService
-            .listByTeamIdAndExecutionModes(
+        List<FlinkApplication> appsReferenceQueueLabel = applicationManageService
+            .listByTeamIdAndDeployModes(
                 teamId,
                 Sets.newHashSet(
-                    FlinkExecutionMode.YARN_APPLICATION,
-                    FlinkExecutionMode.YARN_PER_JOB))
+                    FlinkDeployMode.YARN_APPLICATION,
+                    FlinkDeployMode.YARN_PER_JOB))
             .stream()
             .filter(
                 application -> {
